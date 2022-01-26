@@ -46,8 +46,28 @@ final class Connection extends AbstractConnection
 
         if (strncmp($this->driver->getDsn(), 'sqlite::memory:', 15) !== 0) {
             /** reset PDO connection, unless its sqlite in-memory, which can only have one connection */
-            $this->driver->PDO(null);
+            $this->driver = clone $this->driver;
+            $this->driver->pdo(null);
         }
+    }
+
+    /**
+     * Close the connection before serializing.
+     *
+     * @return array
+     */
+    public function __sleep(): array
+    {
+        $fields = (array) $this;
+
+        unset(
+            $fields["\000" . __CLASS__ . "\000" . 'master'],
+            $fields["\000" . __CLASS__ . "\000" . 'slave'],
+            $fields["\000" . __CLASS__ . "\000" . 'transaction'],
+            $fields["\000" . __CLASS__ . "\000" . 'schema']
+        );
+
+        return array_keys($fields);
     }
 
     public function close(): void

@@ -7,6 +7,8 @@ namespace Yiisoft\Db\Mysql;
 use PDO;
 use Yiisoft\Db\Driver\PDODriverInterface;
 
+use function strncmp;
+
 final class PDOMysqlDriver implements PDODriverInterface
 {
     private array $attributes = [];
@@ -22,6 +24,13 @@ final class PDOMysqlDriver implements PDODriverInterface
         $this->username = $username;
         $this->password = $password;
         $this->attributes = $attributes;
+    }
+
+    public function __sleep(): array
+    {
+        $fields = (array) $this;
+        unset($fields["\000" . __CLASS__ . "\000" . 'pdo']);
+        return array_keys($fields);
     }
 
     public function attributes(array $attributes): void
