@@ -48,11 +48,5 @@
     },
     "config": {
         "sort-packages": true
-    },
-    "repositories": [
-        {
-            "type": "path",
-            "url": "d:/GitHub/terabytesoft/db"
-        }
-    ]
+    }
 }
