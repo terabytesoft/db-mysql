@@ -349,7 +349,7 @@ SQL;
         $connection = $this->getConnection(true);
 
         foreach ($pdoAttributes as $name => $value) {
-            $connection->getPDO()->setAttribute($name, $value);
+            $connection->getDriver()->getPDO()->setAttribute($name, $value);
         }
 
         $schema = $connection->getSchema();

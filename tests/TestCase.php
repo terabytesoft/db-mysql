@@ -7,6 +7,7 @@ namespace Yiisoft\Db\Mysql\Tests;
 use PHPUnit\Framework\TestCase as AbstractTestCase;
 use Yiisoft\Db\Mysql\Connection;
 use Yiisoft\Db\TestUtility\TestTrait;
+use Yiisoft\Db\Mysql\PDOMysqlDriver;
 
 class TestCase extends AbstractTestCase
 {
@@ -14,6 +15,7 @@ class TestCase extends AbstractTestCase
 
     protected const DB_CONNECTION_CLASS = \Yiisoft\Db\Mysql\Connection::class;
     protected const DB_DRIVERNAME = 'mysql';
+    protected const DB_DRIVER_CLASS = PDOMysqlDriver::class;
     protected const DB_DSN = 'mysql:host=127.0.0.1;dbname=yiitest;port=3306';
     protected const DB_FIXTURES_PATH = __DIR__ . '/Fixture/mysql.sql';
     protected const DB_USERNAME = 'root';
@@ -27,7 +29,8 @@ class TestCase extends AbstractTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->connection = $this->createConnection(self::DB_DSN);
+        $PDOMysqlDriver = new PDOMysqlDriver(self::DB_DSN, self::DB_USERNAME, self::DB_PASSWORD);
+        $this->connection = $this->createConnection($PDOMysqlDriver);
     }
 
     protected function tearDown(): void

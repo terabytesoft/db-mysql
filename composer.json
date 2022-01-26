@@ -21,7 +21,7 @@
         "php": "^8.0",
         "ext-json": "*",
         "ext-pdo": "*",
-        "yiisoft/db": "^3.0",
+        "terabytesoft/db": "@dev",
         "yiisoft/json": "^1.0"
     },
     "require-dev": {
@@ -48,5 +48,11 @@
     },
     "config": {
         "sort-packages": true
-    }
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "d:/GitHub/terabytesoft/db"
+        }
+    ]
 }

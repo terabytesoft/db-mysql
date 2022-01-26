@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Yiisoft\Db\Mysql\Tests;
 
 use PDO;
+use PDOException;
 use Yiisoft\Cache\CacheKeyNormalizer;
 use Yiisoft\Db\Exception\Exception;
 use Yiisoft\Db\Exception\InvalidConfigException;
@@ -44,7 +45,7 @@ final class ConnectionTest extends TestCase
     {
         $db = $this->getConnection();
 
-        $this->assertEquals(self::DB_DSN, $db->getDsn());
+        $this->assertEquals(self::DB_DSN, $db->getDriver()->getDsn());
     }
 
     public function testGetDriverName(): void
@@ -59,23 +60,22 @@ final class ConnectionTest extends TestCase
         $db = $this->getConnection();
 
         $this->assertFalse($db->isActive());
-        $this->assertNull($db->getPDO());
+        $this->assertNull($db->getDriver()->getPDO());
 
         $db->open();
 
         $this->assertTrue($db->isActive());
-        $this->assertInstanceOf(PDO::class, $db->getPDO());
+        $this->assertInstanceOf(PDO::class, $db->getDriver()->getPDO());
 
         $db->close();
 
         $this->assertFalse($db->isActive());
-        $this->assertNull($db->getPDO());
+        $this->assertNull($db->getDriver()->getPDO());
 
-        $db = $this->createConnection('unknown::memory:');
-
+        $pdoClass = self::DB_DRIVER_CLASS;
+        $db = $this->createConnection(new $pdoClass('unknown::memory:'));
         $this->expectException(Exception::class);
         $this->expectExceptionMessage('could not find driver');
-
         $db->open();
     }
 
@@ -148,7 +148,8 @@ final class ConnectionTest extends TestCase
     {
         $db = $this->getConnection();
 
-        $db->setSlave('1', $this->createConnection(self::DB_DSN));
+        $pdoClass = self::DB_DRIVER_CLASS;
+        $db->setSlave('1', $this->createConnection(new $pdoClass(self::DB_DSN, self::DB_USERNAME, self::DB_PASSWORD)));
 
         $this->assertNotNull($db->getSlavePdo(false));
 
@@ -172,12 +173,13 @@ final class ConnectionTest extends TestCase
 
         $db = $this->getConnection(true);
 
-        $db->setMaster('1', $this->createConnection(self::DB_DSN));
+        $pdoClass = self::DB_DRIVER_CLASS;
+        $db->setMaster('1', $this->createConnection(new $pdoClass(self::DB_DSN, self::DB_USERNAME, self::DB_PASSWORD)));
 
         $db->setShuffleMasters(false);
 
         $cacheKey = $cacheKeyNormalizer->normalize(
-            ['Yiisoft\Db\Connection\Connection::openFromPoolSequentially', $db->getDsn()]
+            ['Yiisoft\Db\Connection\Connection::openFromPoolSequentially', $db->getDriver()->getDsn()]
         );
 
         $this->assertFalse($this->cache->psr()->has($cacheKey));
@@ -197,7 +199,10 @@ final class ConnectionTest extends TestCase
             ['Yiisoft\Db\Connection\Connection::openFromPoolSequentially', 'host:invalid']
         );
 
-        $db->setMaster('1', $this->createConnection('host:invalid'));
+        $db->setMaster(
+            '1',
+            $this->createConnection(new $pdoClass('host:invalid')),
+        );
 
         $db->setShuffleMasters(true);
 
@@ -220,14 +225,15 @@ final class ConnectionTest extends TestCase
 
         $db = $this->getConnection();
 
-        $db->setMaster('1', $this->createConnection(self::DB_DSN));
+        $pdoClass = self::DB_DRIVER_CLASS;
+        $db->setMaster('1', $this->createConnection(new $pdoClass(self::DB_DSN, self::DB_USERNAME, self::DB_PASSWORD)));
 
         $this->schemaCache->setEnable(false);
 
         $db->setShuffleMasters(false);
 
         $cacheKey = $cacheKeyNormalizer->normalize(
-            ['Yiisoft\Db\Connection\Connection::openFromPoolSequentially::', $db->getDsn()]
+            ['Yiisoft\Db\Connection\Connection::openFromPoolSequentially::', $db->getDriver()->getDsn()]
         );
 
         $this->assertFalse($this->cache->psr()->has($cacheKey));
@@ -242,7 +248,10 @@ final class ConnectionTest extends TestCase
             ['Yiisoft\Db\Connection\Connection::openFromPoolSequentially', 'host:invalid']
         );
 
-        $db->setMaster('1', $this->createConnection('host:invalid'));
+        $db->setMaster(
+            '1',
+            $this->createConnection(new $pdoClass('host:invalid', self::DB_USERNAME, self::DB_PASSWORD)),
+        );
 
         try {
             $db->open();
