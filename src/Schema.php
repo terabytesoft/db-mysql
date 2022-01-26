@@ -165,7 +165,7 @@ final class Schema extends AbstractSchema implements ConstraintFinderInterface
         }
 
         $resolvedName->fullName(($resolvedName->getSchemaName() !== $this->defaultSchema ?
-            (string) $resolvedName->getSchemaName() . '.' : '') . (string) $resolvedName->getName());
+            (string) $resolvedName->getSchemaName() . '.' : '') . $resolvedName->getName());
 
         return $resolvedName;
     }
@@ -371,7 +371,7 @@ SQL;
         if (isset($parts[1])) {
             $table->schemaName($parts[0]);
             $table->name($parts[1]);
-            $table->fullName((string) $table->getSchemaName() . '.' . (string) $table->getName());
+            $table->fullName((string) $table->getSchemaName() . '.' . $table->getName());
         } else {
             $table->name($parts[0]);
             $table->fullName($parts[0]);

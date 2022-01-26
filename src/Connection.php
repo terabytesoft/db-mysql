@@ -11,7 +11,7 @@ use Yiisoft\Db\Cache\QueryCache;
 use Yiisoft\Db\Cache\SchemaCache;
 use Yiisoft\Db\Command\Command;
 use Yiisoft\Db\Connection\Connection as AbstractConnection;
-use Yiisoft\Db\Driver\PDODriverInterface;
+use yiisoft\Db\Driver\DriverInterface;
 use Yiisoft\Db\Exception\Exception;
 use Yiisoft\Db\Exception\InvalidConfigException;
 
@@ -22,11 +22,11 @@ use function constant;
  */
 final class Connection extends AbstractConnection
 {
-    private PDODriverInterface $driver;
+    private PDOMysqlDriver $driver;
     private QueryCache $queryCache;
     private SchemaCache $schemaCache;
 
-    public function __construct(PDODriverInterface $driver, QueryCache $queryCache, SchemaCache $schemaCache)
+    public function __construct(PDOMysqlDriver $driver, QueryCache $queryCache, SchemaCache $schemaCache)
     {
         $this->driver = $driver;
         $this->queryCache = $queryCache;
@@ -118,8 +118,7 @@ final class Connection extends AbstractConnection
         return $command->bindValues($params);
     }
 
-
-    public function getDriver(): PDODriverInterface
+    public function getDriver(): DriverInterface
     {
         return $this->driver;
     }
@@ -131,7 +130,7 @@ final class Connection extends AbstractConnection
      */
     public function getDriverName(): string
     {
-        return PDODriverInterface::DRIVER_MYSQL;
+        return DriverInterface::DRIVER_MYSQL;
     }
 
     /**
@@ -141,9 +140,9 @@ final class Connection extends AbstractConnection
      *
      * @throws Exception
      *
-     * @return PDO the PDO instance for the currently active master connection.
+     * @return PDO|null the PDO instance for the currently active master connection.
      */
-    public function getMasterPdo(): PDO
+    public function getMasterPdo(): PDO|null
     {
         $this->open();
         return $this->driver->getPDO();
@@ -209,7 +208,7 @@ final class Connection extends AbstractConnection
                 $this->profiler->begin($token, [__METHOD__]);
             }
 
-            $this->driver->createPdoInstance();
+            $this->driver->createConnectionInstance();
             $this->initConnection();
 
             if ($this->profiler !== null) {
@@ -224,7 +223,7 @@ final class Connection extends AbstractConnection
                 $this->logger->log(LogLevel::ERROR, $token);
             }
 
-            throw new Exception($e->getMessage(), $e->errorInfo, $e);
+            throw new Exception($e->getMessage(), (array) $e->errorInfo, $e);
         }
     }
 
