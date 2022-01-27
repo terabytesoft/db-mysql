@@ -11,7 +11,7 @@ use Yiisoft\Db\Cache\QueryCache;
 use Yiisoft\Db\Cache\SchemaCache;
 use Yiisoft\Db\Command\Command;
 use Yiisoft\Db\Connection\Connection as AbstractConnection;
-use yiisoft\Db\Driver\DriverInterface;
+use Yiisoft\Db\Driver\DriverInterface;
 use Yiisoft\Db\Exception\Exception;
 use Yiisoft\Db\Exception\InvalidConfigException;
 
