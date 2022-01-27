@@ -26,11 +26,12 @@ use function array_merge;
 use function array_values;
 use function bindec;
 use function explode;
+use function md5;
 use function preg_match;
 use function preg_match_all;
+use function serialize;
 use function str_replace;
 use function stripos;
-use function strpos;
 use function strtolower;
 use function trim;
 
@@ -240,7 +241,7 @@ final class Schema extends AbstractSchema implements ConstraintFinderInterface
      *
      * @throws Exception|InvalidConfigException|Throwable
      *
-     * @return array|ForeignKeyConstraint[] foreign keys for the given table.
+     * @return array foreign keys for the given table.
      */
     protected function loadTableForeignKeys(string $tableName): array
     {
@@ -281,14 +282,14 @@ SQL;
             ':tableName' => $resolvedName->getName(),
         ])->queryAll();
 
-        /** @var array<array-key, array<array-key, mixed>> $indexes */
+        /** @var array[] $indexes */
         $indexes = $this->normalizePdoRowKeyCase($indexes, true);
         $indexes = ArrayHelper::index($indexes, null, 'name');
         $result = [];
 
         /**
          * @psalm-var object|string|null $name
-         * @psalm-var array<array-key, array<array-key, mixed>> $index
+         * @psalm-var array[] $index
          */
         foreach ($indexes as $name => $index) {
             $ic = new IndexConstraint();
@@ -309,9 +310,9 @@ SQL;
      *
      * @param string $tableName table name.
      *
-     * @throws Exception|InvalidConfigException|Throwable
+     * @return array unique constraints for the given table.
      *
-     * @return array|Constraint[] unique constraints for the given table.
+     * @throws Exception|InvalidConfigException|Throwable
      */
     protected function loadTableUniques(string $tableName): array
     {
@@ -394,7 +395,7 @@ SQL;
         /** @psalm-var ColumnInfoArray $info */
         $column->name($info['field']);
         $column->allowNull($info['null'] === 'YES');
-        $column->primaryKey(strpos($info['key'], 'PRI') !== false);
+        $column->primaryKey(str_contains($info['key'], 'PRI'));
         $column->autoIncrement(stripos($info['extra'], 'auto_increment') !== false);
         $column->comment($info['comment']);
         $column->dbType($info['type']);
@@ -484,7 +485,7 @@ SQL;
         } catch (Exception $e) {
             $previous = $e->getPrevious();
 
-            if ($previous instanceof PDOException && strpos($previous->getMessage(), 'SQLSTATE[42S02') !== false) {
+            if ($previous instanceof PDOException && str_contains($previous->getMessage(), 'SQLSTATE[42S02')) {
                 /**
                  * table does not exist.
                  *
@@ -607,13 +608,13 @@ SQL;
         } catch (Exception $e) {
             $previous = $e->getPrevious();
 
-            if (!$previous instanceof PDOException || strpos($previous->getMessage(), 'SQLSTATE[42S02') === false) {
+            if (!$previous instanceof PDOException || !str_contains($previous->getMessage(), 'SQLSTATE[42S02')) {
                 throw $e;
             }
 
             // table does not exist, try to determine the foreign keys using the table creation sql
             $sql = $this->getCreateTableSql($table);
-            $regexp = '/FOREIGN KEY\s+\(([^\)]+)\)\s+REFERENCES\s+([^\(^\s]+)\s*\(([^\)]+)\)/mi';
+            $regexp = '/FOREIGN KEY\s+\(([^)]+)\)\s+REFERENCES\s+([^(^\s]+)\s*\(([^)]+)\)/mi';
 
             if (preg_match_all($regexp, $sql, $matches, PREG_SET_ORDER)) {
                 foreach ($matches as $match) {
@@ -625,7 +626,7 @@ SQL;
                         $constraint[$name] = $pks[$k];
                     }
 
-                    $table->foreignKey(\md5(\serialize($constraint)), $constraint);
+                    $table->foreignKey(md5(serialize($constraint)), $constraint);
                 }
                 $table->foreignKeys(array_values($table->getForeignKeys()));
             }
@@ -656,7 +657,7 @@ SQL;
 
         $uniqueIndexes = [];
 
-        $regexp = '/UNIQUE KEY\s+\`(.+)\`\s*\((\`.+\`)+\)/mi';
+        $regexp = '/UNIQUE KEY\s+`(.+)`\s*\((`.+`)+\)/mi';
 
         if (preg_match_all($regexp, $sql, $matches, PREG_SET_ORDER)) {
             foreach ($matches as $match) {
@@ -675,11 +676,11 @@ SQL;
      * This method may be overridden by child classes to create a DBMS-specific column schema builder.
      *
      * @param string $type type of the column. See {@see ColumnSchemaBuilder::$type}.
-     * @param array|int|string $length length or precision of the column. See {@see ColumnSchemaBuilder::$length}.
+     * @param array|int|string|null $length length or precision of the column. See {@see ColumnSchemaBuilder::$length}.
      *
      * @return ColumnSchemaBuilder column schema builder instance
      */
-    public function createColumnSchemaBuilder(string $type, $length = null): ColumnSchemaBuilder
+    public function createColumnSchemaBuilder(string $type, array|int|string $length = null): ColumnSchemaBuilder
     {
         return new ColumnSchemaBuilder($type, $length, $this->getDb());
     }
@@ -695,11 +696,9 @@ SQL;
      *
      * @throws Exception|InvalidConfigException|Throwable
      *
-     * @return (Constraint|ForeignKeyConstraint)[]|Constraint|null constraints.
-     *
-     * @psalm-return Constraint|list<Constraint|ForeignKeyConstraint>|null
+     * @return array|Constraint|null (Constraint|ForeignKeyConstraint)[]|Constraint|null constraints.
      */
-    private function loadTableConstraints(string $tableName, string $returnType)
+    private function loadTableConstraints(string $tableName, string $returnType): array|Constraint|null
     {
         $sql = <<<'SQL'
 SELECT

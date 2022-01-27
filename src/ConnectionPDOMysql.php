@@ -12,7 +12,6 @@ use Yiisoft\Db\Cache\SchemaCache;
 use Yiisoft\Db\Command\Command;
 use Yiisoft\Db\Connection\Connection;
 use Yiisoft\Db\Connection\ConnectionPDOInterface;
-use Yiisoft\Db\Driver\DriverInterface;
 use Yiisoft\Db\Driver\PDODriver;
 use Yiisoft\Db\Driver\PDOInterface;
 use Yiisoft\Db\Exception\Exception;
@@ -137,6 +136,7 @@ final class ConnectionPDOMysql extends Connection implements ConnectionPDOInterf
      */
     public function getSlavePdo(bool $fallbackToMaster = true): ?PDO
     {
+        /** @var ConnectionPDOMysql|null $db */
         $db = $this->getSlave(false);
 
         if ($db === null) {

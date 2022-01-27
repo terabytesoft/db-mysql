@@ -17,6 +17,7 @@ use Yiisoft\Db\Expression\ExpressionInterface;
 use Yiisoft\Db\Expression\JsonExpression;
 use Yiisoft\Db\Query\Query;
 use Yiisoft\Db\Query\QueryBuilder as AbstractQueryBuilder;
+use Yiisoft\Db\Schema\Schema;
 
 use function array_merge;
 use function array_values;
@@ -178,7 +179,7 @@ final class QueryBuilder extends AbstractQueryBuilder
     }
 
     /**
-     * Creates a SQL command for dropping an unique constraint.
+     * Creates a SQL command for dropping a unique constraint.
      *
      * @param string $name the name of the unique constraint to be dropped. The name will be properly quoted by the
      * method.
@@ -310,7 +311,7 @@ final class QueryBuilder extends AbstractQueryBuilder
      */
     protected function hasLimit($limit): bool
     {
-        /** In MySQL limit argument must be non negative integer constant */
+        /** In MySQL limit argument must be non-negative integer constant */
         return ctype_digit((string) $limit);
     }
 
@@ -323,7 +324,7 @@ final class QueryBuilder extends AbstractQueryBuilder
      */
     protected function hasOffset($offset): bool
     {
-        /** In MySQL offset argument must be non negative integer constant */
+        /** In MySQL offset argument must be non-negative integer constant */
         $offset = (string) $offset;
 
         return ctype_digit($offset) && $offset !== '0';
@@ -456,7 +457,6 @@ final class QueryBuilder extends AbstractQueryBuilder
         );
 
         $checkRegex = '/CHECK *(\(([^()]|(?-2))*\))/';
-
         $check = preg_match($checkRegex, $definition, $checkMatches);
 
         if ($check === 1) {
