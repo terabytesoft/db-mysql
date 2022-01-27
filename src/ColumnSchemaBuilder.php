@@ -14,15 +14,11 @@ use Yiisoft\Db\Schema\ColumnSchemaBuilder as AbstractColumnSchemaBuilder;
  */
 final class ColumnSchemaBuilder extends AbstractColumnSchemaBuilder
 {
-    private ConnectionInterface $db;
-
     /**
      *  @param array|int|string|null $length column size or precision definition.
      */
-    public function __construct(string $type, $length, ConnectionInterface $db)
+    public function __construct(string $type, $length, private ConnectionInterface $db)
     {
-        $this->db = $db;
-
         parent::__construct($type, $length);
     }
 
@@ -70,16 +66,12 @@ final class ColumnSchemaBuilder extends AbstractColumnSchemaBuilder
 
     public function __toString(): string
     {
-        switch ($this->getTypeCategory()) {
-            case self::CATEGORY_PK:
-                $format = '{type}{length}{comment}{check}{append}{pos}';
-                break;
-            case self::CATEGORY_NUMERIC:
-                $format = '{type}{length}{unsigned}{notnull}{default}{unique}{comment}{append}{pos}{check}';
-                break;
-            default:
-                $format = '{type}{length}{notnull}{default}{unique}{comment}{append}{pos}{check}';
-        }
+        match ($this->getTypeCategory()) {
+            self::CATEGORY_PK => $format = '{type}{length}{comment}{check}{append}{pos}',
+            self::CATEGORY_NUMERIC => $format = '{type}{length}{unsigned}{notnull}{default}{unique}{comment}{append}' .
+                '{pos}{check}',
+            default => $format = '{type}{length}{notnull}{default}{unique}{comment}{append}{pos}{check}',
+        };
 
         return $this->buildCompleteString($format);
     }

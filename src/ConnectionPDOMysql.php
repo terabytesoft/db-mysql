@@ -24,16 +24,11 @@ use function constant;
  */
 final class ConnectionPDOMysql extends Connection implements ConnectionPDOInterface
 {
-    private PDOMysqlDriver $driver;
-    private QueryCache $queryCache;
-    private SchemaCache $schemaCache;
-
-    public function __construct(PDOMysqlDriver $driver, QueryCache $queryCache, SchemaCache $schemaCache)
-    {
-        $this->driver = $driver;
-        $this->queryCache = $queryCache;
-        $this->schemaCache = $schemaCache;
-
+    public function __construct(
+        private PDOMysqlDriver $driver,
+        private QueryCache $queryCache,
+        private SchemaCache $schemaCache
+    ) {
         parent::__construct($queryCache);
     }
 

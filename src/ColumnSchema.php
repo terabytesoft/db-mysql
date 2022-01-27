@@ -27,7 +27,7 @@ final class ColumnSchema extends AbstractColumnSchema
      *
      * @return mixed converted value.
      */
-    public function phpTypecast($value)
+    public function phpTypecast($value): mixed
     {
         if ($value === null) {
             return null;
@@ -50,7 +50,7 @@ final class ColumnSchema extends AbstractColumnSchema
      * @return mixed converted value. This may also be an array containing the value as the first element and the PDO
      * type as the second element.
      */
-    public function dbTypecast($value)
+    public function dbTypecast($value): mixed
     {
         if ($value === null) {
             return null;

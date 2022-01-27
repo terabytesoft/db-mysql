@@ -9,19 +9,15 @@ use Yiisoft\Db\Driver\PDOInterface;
 
 final class PDOMysqlDriver implements PDOInterface
 {
-    private array $attributes;
     private ?string $charset = null;
-    private string $dsn;
-    private string $username;
-    private string $password;
     private ?PDO $pdo = null;
 
-    public function __construct(string $dsn, string $username = '', string $password = '', array $attributes = [])
-    {
-        $this->dsn = $dsn;
-        $this->username = $username;
-        $this->password = $password;
-        $this->attributes = $attributes;
+    public function __construct(
+        private string $dsn,
+        private string $username = '',
+        private string $password = '',
+        private array $attributes = []
+    ) {
     }
 
     public function __sleep(): array
