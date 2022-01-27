@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Yiisoft\Db\Mysql\Tests;
 
 use PHPUnit\Framework\TestCase as AbstractTestCase;
-use Yiisoft\Db\Mysql\Connection;
+use Yiisoft\Db\Mysql\ConnectionPDOMysql;
 use Yiisoft\Db\TestUtility\TestTrait;
 use Yiisoft\Db\Mysql\PDOMysqlDriver;
 
@@ -13,7 +13,7 @@ class TestCase extends AbstractTestCase
 {
     use TestTrait;
 
-    protected const DB_CONNECTION_CLASS = \Yiisoft\Db\Mysql\Connection::class;
+    protected const DB_CONNECTION_CLASS = \Yiisoft\Db\Mysql\ConnectionPDOMysql::class;
     protected const DB_DRIVERNAME = 'mysql';
     protected const DB_DRIVER_CLASS = PDOMysqlDriver::class;
     protected const DB_DSN = 'mysql:host=127.0.0.1;dbname=yiitest;port=3306';
@@ -24,7 +24,7 @@ class TestCase extends AbstractTestCase
     protected array $dataProvider;
     protected string $likeEscapeCharSql = '';
     protected array $likeParameterReplacements = [];
-    protected Connection $connection;
+    protected ConnectionPDOMysql $connection;
 
     protected function setUp(): void
     {

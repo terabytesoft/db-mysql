@@ -10,8 +10,10 @@ use Psr\Log\LogLevel;
 use Yiisoft\Db\Cache\QueryCache;
 use Yiisoft\Db\Cache\SchemaCache;
 use Yiisoft\Db\Command\Command;
-use Yiisoft\Db\Connection\Connection as AbstractConnection;
+use Yiisoft\Db\Connection\Connection;
+use Yiisoft\Db\Connection\ConnectionPDOInterface;
 use Yiisoft\Db\Driver\DriverInterface;
+use Yiisoft\Db\Driver\PDOInterface;
 use Yiisoft\Db\Exception\Exception;
 use Yiisoft\Db\Exception\InvalidConfigException;
 
@@ -20,7 +22,7 @@ use function constant;
 /**
  * The class Connection represents a connection to a database via [PDO](https://secure.php.net/manual/en/book.pdo.php).
  */
-final class Connection extends AbstractConnection
+final class ConnectionPDOMysql extends Connection implements ConnectionPDOInterface
 {
     private PDOMysqlDriver $driver;
     private QueryCache $queryCache;
@@ -72,28 +74,23 @@ final class Connection extends AbstractConnection
 
     public function close(): void
     {
-        if ($this->master) {
-            if ($this->driver->getPDO() === $this->master->getDriver()->getPDO()) {
-                $this->driver->PDO(null);
-            }
-
+        if (!empty($this->master)) {
+            $this->driver->PDO(null);
             $this->master->close();
             $this->master = null;
         }
 
         if ($this->driver->getPDO() !== null) {
-            if ($this->logger !== null) {
-                $this->logger->log(
-                    LogLevel::DEBUG,
-                    'Closing DB connection: ' . $this->driver->getDsn() . ' ' . __METHOD__,
-                );
-            }
+            $this->logger?->log(
+                LogLevel::DEBUG,
+                'Closing DB connection: ' . $this->driver->getDsn() . ' ' . __METHOD__,
+            );
 
             $this->driver->PDO(null);
             $this->transaction = null;
         }
 
-        if ($this->slave) {
+        if (!empty($this->slave)) {
             $this->slave->close();
             $this->slave = null;
         }
@@ -118,7 +115,7 @@ final class Connection extends AbstractConnection
         return $command->bindValues($params);
     }
 
-    public function getDriver(): DriverInterface
+    public function getDriver(): PDOInterface
     {
         return $this->driver;
     }
@@ -130,7 +127,7 @@ final class Connection extends AbstractConnection
      */
     public function getDriverName(): string
     {
-        return DriverInterface::DRIVER_MYSQL;
+        return 'mysql';
     }
 
     /**
@@ -138,7 +135,7 @@ final class Connection extends AbstractConnection
      *
      * This method will open the master DB connection and then return {@see pdo}.
      *
-     * @throws Exception
+     * @throws Exception|InvalidConfigException
      *
      * @return PDO|null the PDO instance for the currently active master connection.
      */
@@ -161,10 +158,10 @@ final class Connection extends AbstractConnection
      *
      * @param bool $fallbackToMaster whether to return a master PDO in case none of the slave connections is available.
      *
-     * @throws Exception
+     * @throws Exception|InvalidConfigException
      *
-     * @return PDO the PDO instance for the currently active slave connection. `null` is returned if no slave connection
-     * is available and `$fallbackToMaster` is false.
+     * @return PDO|null the PDO instance for the currently active slave connection. `null` is returned if no slave
+     * connection is available and `$fallbackToMaster` is false.
      */
     public function getSlavePdo(bool $fallbackToMaster = true): ?PDO
     {
@@ -183,7 +180,7 @@ final class Connection extends AbstractConnection
             return;
         }
 
-        if (!empty($this->masters)) {
+        if ($this->masters !== []) {
             $db = $this->getMaster();
 
             if ($db !== null) {
@@ -200,28 +197,14 @@ final class Connection extends AbstractConnection
         $token = 'Opening DB connection: ' . $this->driver->getDsn();
 
         try {
-            if ($this->logger !== null) {
-                $this->logger->log(LogLevel::INFO, $token);
-            }
-
-            if ($this->profiler !== null) {
-                $this->profiler->begin($token, [__METHOD__]);
-            }
-
+            $this->logger?->log(LogLevel::INFO, $token);
+            $this->profiler?->begin($token, [__METHOD__]);
             $this->driver->createConnectionInstance();
             $this->initConnection();
-
-            if ($this->profiler !== null) {
-                $this->profiler->end($token, [__METHOD__]);
-            }
+            $this->profiler?->end($token, [__METHOD__]);
         } catch (PDOException $e) {
-            if ($this->profiler !== null) {
-                $this->profiler->end($token, [__METHOD__]);
-            }
-
-            if ($this->logger !== null) {
-                $this->logger->log(LogLevel::ERROR, $token);
-            }
+            $this->profiler?->end($token, [__METHOD__]);
+            $this->logger?->log(LogLevel::ERROR, $token);
 
             throw new Exception($e->getMessage(), (array) $e->errorInfo, $e);
         }
@@ -248,7 +231,7 @@ final class Connection extends AbstractConnection
      *
      * It then triggers an {@see EVENT_AFTER_OPEN} event.
      */
-    private function initConnection(): void
+    protected function initConnection(): void
     {
         $pdo = $this->driver->getPDO();
 

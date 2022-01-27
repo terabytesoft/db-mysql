@@ -43,10 +43,7 @@ final class ColumnSchemaBuilder extends AbstractColumnSchemaBuilder
      */
     protected function buildAfterString(): string
     {
-        /** @var Connection $db */
-        $db = $this->db;
-
-        return $this->getAfter() !== null ? ' AFTER ' . $db->quoteColumnName((string) $this->getAfter()) : '';
+        return $this->getAfter() !== null ? ' AFTER ' . $this->db->quoteColumnName((string) $this->getAfter()) : '';
     }
 
     /**
@@ -68,10 +65,7 @@ final class ColumnSchemaBuilder extends AbstractColumnSchemaBuilder
      */
     protected function buildCommentString(): string
     {
-        /** @var Connection $db */
-        $db = $this->db;
-
-        return $this->getComment() !== null ? ' COMMENT ' . $db->quoteValue((string) $this->getComment()) : '';
+        return $this->getComment() !== null ? ' COMMENT ' . $this->db->quoteValue((string) $this->getComment()) : '';
     }
 
     public function __toString(): string

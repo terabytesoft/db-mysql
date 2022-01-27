@@ -5,17 +5,15 @@ declare(strict_types=1);
 namespace Yiisoft\Db\Mysql;
 
 use PDO;
-use Yiisoft\Db\Driver\DriverInterface;
+use Yiisoft\Db\Driver\PDOInterface;
 
-use function strncmp;
-
-final class PDOMysqlDriver implements DriverInterface
+final class PDOMysqlDriver implements PDOInterface
 {
-    private array $attributes = [];
+    private array $attributes;
     private ?string $charset = null;
-    private string $dsn = '';
-    private string $username = '';
-    private string $password = '';
+    private string $dsn;
+    private string $username;
+    private string $password;
     private ?PDO $pdo = null;
 
     public function __construct(string $dsn, string $username = '', string $password = '', array $attributes = [])
@@ -45,7 +43,10 @@ final class PDOMysqlDriver implements DriverInterface
         $this->attributes = $attributes;
     }
 
-    public function createConnectionInstance(): static
+    /**
+     * @return static
+     */
+    public function createConnectionInstance(): self
     {
         $this->pdo = new PDO($this->dsn, $this->username, $this->password, $this->attributes);
         return $this;
