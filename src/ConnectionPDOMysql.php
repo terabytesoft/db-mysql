@@ -68,6 +68,30 @@ final class ConnectionPDOMysql extends Connection implements ConnectionPDOInterf
         return $command->bindValues($params);
     }
 
+    public function close(): void
+    {
+        if (!empty($this->master)) {
+            $this->driver->PDO(null);
+            $this->master->close();
+            $this->master = null;
+        }
+
+        if ($this->driver->getPDO() !== null) {
+            $this->logger?->log(
+                LogLevel::DEBUG,
+                'Closing DB connection: ' . $this->driver->getDsn() . ' ' . __METHOD__,
+            );
+
+            $this->driver->PDO(null);
+            $this->transaction = null;
+        }
+
+        if (!empty($this->slave)) {
+            $this->slave->close();
+            $this->slave = null;
+        }
+    }
+
     public function getDriver(): PDOInterface
     {
         return $this->driver;
