@@ -66,11 +66,11 @@ final class ColumnSchemaBuilder extends AbstractColumnSchemaBuilder
 
     public function __toString(): string
     {
-        match ($this->getTypeCategory()) {
-            self::CATEGORY_PK => $format = '{type}{length}{comment}{check}{append}{pos}',
-            self::CATEGORY_NUMERIC => $format = '{type}{length}{unsigned}{notnull}{default}{unique}{comment}{append}' .
+        $format = match ($this->getTypeCategory()) {
+            self::CATEGORY_PK => '{type}{length}{comment}{check}{append}{pos}',
+            self::CATEGORY_NUMERIC => '{type}{length}{unsigned}{notnull}{default}{unique}{comment}{append}' .
                 '{pos}{check}',
-            default => $format = '{type}{length}{notnull}{default}{unique}{comment}{append}{pos}{check}',
+            default => '{type}{length}{notnull}{default}{unique}{comment}{append}{pos}{check}',
         };
 
         return $this->buildCompleteString($format);
