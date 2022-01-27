@@ -13,6 +13,7 @@ use Yiisoft\Db\Command\Command;
 use Yiisoft\Db\Connection\Connection;
 use Yiisoft\Db\Connection\ConnectionPDOInterface;
 use Yiisoft\Db\Driver\DriverInterface;
+use Yiisoft\Db\Driver\PDODriver;
 use Yiisoft\Db\Driver\PDOInterface;
 use Yiisoft\Db\Exception\Exception;
 use Yiisoft\Db\Exception\InvalidConfigException;
@@ -25,7 +26,7 @@ use function constant;
 final class ConnectionPDOMysql extends Connection implements ConnectionPDOInterface
 {
     public function __construct(
-        private PDOMysqlDriver $driver,
+        private PDODriver $driver,
         private QueryCache $queryCache,
         private SchemaCache $schemaCache
     ) {
