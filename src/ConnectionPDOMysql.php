@@ -49,49 +49,6 @@ final class ConnectionPDOMysql extends Connection implements ConnectionPDOInterf
         }
     }
 
-    /**
-     * Close the connection before serializing.
-     *
-     * @return array
-     */
-    public function __sleep(): array
-    {
-        $fields = (array) $this;
-
-        unset(
-            $fields["\000" . __CLASS__ . "\000" . 'master'],
-            $fields["\000" . __CLASS__ . "\000" . 'slave'],
-            $fields["\000" . __CLASS__ . "\000" . 'transaction'],
-            $fields["\000" . __CLASS__ . "\000" . 'schema']
-        );
-
-        return array_keys($fields);
-    }
-
-    public function close(): void
-    {
-        if (!empty($this->master)) {
-            $this->driver->PDO(null);
-            $this->master->close();
-            $this->master = null;
-        }
-
-        if ($this->driver->getPDO() !== null) {
-            $this->logger?->log(
-                LogLevel::DEBUG,
-                'Closing DB connection: ' . $this->driver->getDsn() . ' ' . __METHOD__,
-            );
-
-            $this->driver->PDO(null);
-            $this->transaction = null;
-        }
-
-        if (!empty($this->slave)) {
-            $this->slave->close();
-            $this->slave = null;
-        }
-    }
-
     public function createCommand(?string $sql = null, array $params = []): Command
     {
         if ($sql !== null) {
@@ -116,11 +73,6 @@ final class ConnectionPDOMysql extends Connection implements ConnectionPDOInterf
         return $this->driver;
     }
 
-    /**
-     * Returns the name of the DB driver.
-     *
-     * @return string name of the DB driver
-     */
     public function getDriverName(): string
     {
         return 'mysql';
