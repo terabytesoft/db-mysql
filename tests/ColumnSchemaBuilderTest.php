@@ -6,7 +6,7 @@ namespace Yiisoft\Db\Mysql\Tests;
 
 use Yiisoft\Db\Mysql\ColumnSchemaBuilder;
 use Yiisoft\Db\Mysql\Schema;
-use Yiisoft\Db\TestUtility\TestColumnSchemaBuilderTrait;
+use Yiisoft\Db\TestSupport\TestColumnSchemaBuilderTrait;
 
 /**
  * @group mysql

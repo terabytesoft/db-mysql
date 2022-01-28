@@ -6,7 +6,7 @@ namespace Yiisoft\Db\Mysql\Tests;
 
 use Yiisoft\Db\Expression\Expression;
 use Yiisoft\Db\Query\Query;
-use Yiisoft\Db\TestUtility\TestQueryTrait;
+use Yiisoft\Db\TestSupport\TestQueryTrait;
 
 /**
  * @group mysql

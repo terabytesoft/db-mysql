@@ -659,7 +659,9 @@ final class QueryBuilder extends AbstractQueryBuilder
     {
         $result = false;
 
-        $slavePdo = $this->getDb()->getSlavePdo();
+        /** @var ConnectionPDOMysql */
+        $db = $this->getDb();
+        $slavePdo = $db->getSlavePdo();
 
         if ($slavePdo !== null) {
             /** @var string $version */

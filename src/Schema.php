@@ -476,12 +476,13 @@ final class Schema extends AbstractSchema implements ConstraintFinderInterface
      */
     protected function findColumns(TableSchema $table): bool
     {
+        /** @var ConnectionPDOMysql */
+        $db = $this->getDb();
         $tableName = $table->getFullName() ?? '';
-
         $sql = 'SHOW FULL COLUMNS FROM ' . $this->quoteTableName($tableName);
 
         try {
-            $columns = $this->getDb()->createCommand($sql)->queryAll();
+            $columns = $db->createCommand($sql)->queryAll();
         } catch (Exception $e) {
             $previous = $e->getPrevious();
 
@@ -497,7 +498,7 @@ final class Schema extends AbstractSchema implements ConstraintFinderInterface
             throw $e;
         }
 
-        $slavePdo = $this->getDb()->getSlavePdo();
+        $slavePdo = $db->getSlavePdo();
 
         /** @psalm-var ColumnInfoArray $info */
         foreach ($columns as $info) {

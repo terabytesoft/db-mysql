@@ -24,6 +24,8 @@ use function constant;
  */
 final class ConnectionPDOMysql extends Connection implements ConnectionPDOInterface
 {
+    private ?PDO $pdo = null;
+
     public function __construct(
         private PDODriver $driver,
         private QueryCache $queryCache,
@@ -43,9 +45,28 @@ final class ConnectionPDOMysql extends Connection implements ConnectionPDOInterf
 
         if (strncmp($this->driver->getDsn(), 'sqlite::memory:', 15) !== 0) {
             /** reset PDO connection, unless its sqlite in-memory, which can only have one connection */
-            $this->driver = clone $this->driver;
-            $this->driver->pdo(null);
+            $this->pdo = null;
         }
+    }
+
+    /**
+     * Close the connection before serializing.
+     *
+     * @return array
+     */
+    public function __sleep(): array
+    {
+        $fields = (array) $this;
+
+        unset(
+            $fields["\000" . __CLASS__ . "\000" . 'pdo'],
+            $fields["\000" . __CLASS__ . "\000" . 'master'],
+            $fields["\000" . __CLASS__ . "\000" . 'slave'],
+            $fields["\000" . __CLASS__ . "\000" . 'transaction'],
+            $fields["\000" . __CLASS__ . "\000" . 'schema']
+        );
+
+        return array_keys($fields);
     }
 
     public function createCommand(?string $sql = null, array $params = []): Command
@@ -70,18 +91,24 @@ final class ConnectionPDOMysql extends Connection implements ConnectionPDOInterf
     public function close(): void
     {
         if (!empty($this->master)) {
-            $this->driver->PDO(null);
-            $this->master->close();
+            /** @var ConnectionPDOMysql */
+            $db = $this->master;
+
+            if ($this->pdo === $db->getPDO()) {
+                $this->pdo = null;
+            }
+
+            $db->close();
             $this->master = null;
         }
 
-        if ($this->driver->getPDO() !== null) {
+        if ($this->pdo !== null) {
             $this->logger?->log(
                 LogLevel::DEBUG,
                 'Closing DB connection: ' . $this->driver->getDsn() . ' ' . __METHOD__,
             );
 
-            $this->driver->PDO(null);
+            $this->pdo = null;
             $this->transaction = null;
         }
 
@@ -91,7 +118,7 @@ final class ConnectionPDOMysql extends Connection implements ConnectionPDOInterf
         }
     }
 
-    public function getDriver(): PDOInterface
+    public function getDriver(): PDODriver
     {
         return $this->driver;
     }
@@ -101,19 +128,15 @@ final class ConnectionPDOMysql extends Connection implements ConnectionPDOInterf
         return 'mysql';
     }
 
-    /**
-     * Returns the PDO instance for the currently active master connection.
-     *
-     * This method will open the master DB connection and then return {@see pdo}.
-     *
-     * @throws Exception|InvalidConfigException
-     *
-     * @return PDO|null the PDO instance for the currently active master connection.
-     */
     public function getMasterPdo(): PDO|null
     {
         $this->open();
-        return $this->driver->getPDO();
+        return $this->pdo;
+    }
+
+    public function getPDO(): ?PDO
+    {
+        return $this->pdo;
     }
 
     public function getSchema(): Schema
@@ -121,19 +144,6 @@ final class ConnectionPDOMysql extends Connection implements ConnectionPDOInterf
         return new Schema($this, $this->schemaCache);
     }
 
-    /**
-     * Returns the PDO instance for the currently active slave connection.
-     *
-     * When {@see enableSlaves} is true, one of the slaves will be used for read queries, and its PDO instance will be
-     * returned by this method.
-     *
-     * @param bool $fallbackToMaster whether to return a master PDO in case none of the slave connections is available.
-     *
-     * @throws Exception|InvalidConfigException
-     *
-     * @return PDO|null the PDO instance for the currently active slave connection. `null` is returned if no slave
-     * connection is available and `$fallbackToMaster` is false.
-     */
     public function getSlavePdo(bool $fallbackToMaster = true): ?PDO
     {
         /** @var ConnectionPDOMysql|null $db */
@@ -143,19 +153,26 @@ final class ConnectionPDOMysql extends Connection implements ConnectionPDOInterf
             return $fallbackToMaster ? $this->getMasterPdo() : null;
         }
 
-        return $db->getDriver()->getPdo();
+        return $db->getPDO();
+    }
+
+    public function isActive(): bool
+    {
+        return $this->pdo !== null;
     }
 
     public function open(): void
     {
-        if (!empty($this->driver->getPDO())) {
+        if (!empty($this->pdo)) {
             return;
         }
 
-        if ($this->masters !== []) {
+        if (!empty($this->masters)) {
+            /** @var ConnectionPDOMysql|null */
             $db = $this->getMaster();
 
             if ($db !== null) {
+                $this->pdo = $db->getPDO();
                 return;
             }
 
@@ -171,7 +188,6 @@ final class ConnectionPDOMysql extends Connection implements ConnectionPDOInterf
         try {
             $this->logger?->log(LogLevel::INFO, $token);
             $this->profiler?->begin($token, [__METHOD__]);
-            $this->driver->createConnectionInstance();
             $this->initConnection();
             $this->profiler?->end($token, [__METHOD__]);
         } catch (PDOException $e) {
@@ -180,16 +196,6 @@ final class ConnectionPDOMysql extends Connection implements ConnectionPDOInterf
 
             throw new Exception($e->getMessage(), (array) $e->errorInfo, $e);
         }
-    }
-
-    /**
-     * Returns a value indicating whether the DB connection is established.
-     *
-     * @return bool whether the DB connection is established
-     */
-    public function isActive(): bool
-    {
-        return $this->driver->getPDO() !== null;
     }
 
     /**
@@ -205,20 +211,17 @@ final class ConnectionPDOMysql extends Connection implements ConnectionPDOInterf
      */
     protected function initConnection(): void
     {
-        $pdo = $this->driver->getPDO();
+        $this->pdo = $this->driver->createConnection();
+        $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        if ($pdo !== null) {
-            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        if ($this->getEmulatePrepare() !== null && constant('PDO::ATTR_EMULATE_PREPARES')) {
+            $this->pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, $this->getEmulatePrepare());
+        }
 
-            if ($this->getEmulatePrepare() !== null && constant('PDO::ATTR_EMULATE_PREPARES')) {
-                $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, $this->getEmulatePrepare());
-            }
+        $charset = $this->driver->getCharset();
 
-            $charset = $this->driver->getCharset();
-
-            if ($charset !== null) {
-                $pdo->exec('SET NAMES ' . $pdo->quote($charset));
-            }
+        if ($charset !== null) {
+            $this->pdo->exec('SET NAMES ' . $this->pdo->quote($charset));
         }
     }
 }
