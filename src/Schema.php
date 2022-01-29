@@ -9,6 +9,8 @@ use PDO;
 use PDOException;
 use Throwable;
 use Yiisoft\Arrays\ArrayHelper;
+use Yiisoft\Db\Cache\SchemaCache;
+use Yiisoft\Db\Connection\ConnectionPDOInterface;
 use Yiisoft\Db\Constraint\Constraint;
 use Yiisoft\Db\Constraint\ConstraintFinderInterface;
 use Yiisoft\Db\Constraint\ConstraintFinderTrait;
@@ -142,6 +144,11 @@ final class Schema extends AbstractSchema implements ConstraintFinderInterface
      */
     protected $columnQuoteCharacter = '`';
 
+    public function __construct(private ConnectionPDOInterface $db, SchemaCache $schemaCache)
+    {
+        parent::__construct($db, $schemaCache);
+    }
+
     /**
      * Resolves the table name and schema name (if any).
      *
@@ -191,7 +198,7 @@ final class Schema extends AbstractSchema implements ConstraintFinderInterface
             $sql .= ' FROM ' . $this->quoteSimpleTableName($schema);
         }
 
-        return $this->getDb()->createCommand($sql)->queryColumn();
+        return $this->db->createCommand($sql)->queryColumn();
     }
 
     /**
@@ -277,7 +284,7 @@ final class Schema extends AbstractSchema implements ConstraintFinderInterface
 
         $resolvedName = $this->resolveTableName($tableName);
 
-        $indexes = $this->getDb()->createCommand($sql, [
+        $indexes = $this->db->createCommand($sql, [
             ':schemaName' => $resolvedName->getSchemaName(),
             ':tableName' => $resolvedName->getName(),
         ])->queryAll();
@@ -356,7 +363,7 @@ final class Schema extends AbstractSchema implements ConstraintFinderInterface
      */
     public function createQueryBuilder(): QueryBuilder
     {
-        return new QueryBuilder($this->getDb());
+        return new QueryBuilder($this->db);
     }
 
     /**
@@ -476,13 +483,11 @@ final class Schema extends AbstractSchema implements ConstraintFinderInterface
      */
     protected function findColumns(TableSchema $table): bool
     {
-        /** @var ConnectionPDOMysql */
-        $db = $this->getDb();
         $tableName = $table->getFullName() ?? '';
         $sql = 'SHOW FULL COLUMNS FROM ' . $this->quoteTableName($tableName);
 
         try {
-            $columns = $db->createCommand($sql)->queryAll();
+            $columns = $this->db->createCommand($sql)->queryAll();
         } catch (Exception $e) {
             $previous = $e->getPrevious();
 
@@ -498,7 +503,7 @@ final class Schema extends AbstractSchema implements ConstraintFinderInterface
             throw $e;
         }
 
-        $slavePdo = $db->getSlavePdo();
+        $slavePdo = $this->db->getSlavePdo();
 
         /** @psalm-var ColumnInfoArray $info */
         foreach ($columns as $info) {
@@ -534,7 +539,7 @@ final class Schema extends AbstractSchema implements ConstraintFinderInterface
         $tableName = $table->getFullName() ?? '';
 
         /** @var array<array-key, string> $row */
-        $row = $this->getDb()->createCommand(
+        $row = $this->db->createCommand(
             'SHOW CREATE TABLE ' . $this->quoteTableName($tableName)
         )->queryOne();
 
@@ -582,7 +587,7 @@ final class Schema extends AbstractSchema implements ConstraintFinderInterface
         SQL;
 
         try {
-            $rows = $this->getDb()->createCommand($sql, [
+            $rows = $this->db->createCommand($sql, [
                 ':schemaName' => $table->getSchemaName(),
                 ':tableName' => $table->getName(),
             ])->queryAll();
@@ -683,7 +688,7 @@ final class Schema extends AbstractSchema implements ConstraintFinderInterface
      */
     public function createColumnSchemaBuilder(string $type, array|int|string $length = null): ColumnSchemaBuilder
     {
-        return new ColumnSchemaBuilder($type, $length, $this->getDb());
+        return new ColumnSchemaBuilder($type, $length, $this->db);
     }
 
     /**
@@ -754,7 +759,7 @@ final class Schema extends AbstractSchema implements ConstraintFinderInterface
 
         $resolvedName = $this->resolveTableName($tableName);
 
-        $constraints = $this->getDb()->createCommand($sql, [
+        $constraints = $this->db->createCommand($sql, [
             ':schemaName' => $resolvedName->getSchemaName(),
             ':tableName' => $resolvedName->getName(),
         ])->queryAll();
