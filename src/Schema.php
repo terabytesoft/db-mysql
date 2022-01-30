@@ -132,18 +132,6 @@ final class Schema extends AbstractSchema implements ConstraintFinderInterface
         'json' => self::TYPE_JSON,
     ];
 
-    /**
-     * @var string|string[] character used to quote schema, table, etc. names. An array of 2 characters can be used in
-     * case starting and ending characters are different.
-     */
-    protected $tableQuoteCharacter = '`';
-
-    /**
-     * @var string|string[] character used to quote column names. An array of 2 characters can be used in case starting
-     * and ending characters are different.
-     */
-    protected $columnQuoteCharacter = '`';
-
     public function __construct(private ConnectionPDOInterface $db, SchemaCache $schemaCache)
     {
         parent::__construct($db, $schemaCache);
@@ -195,7 +183,7 @@ final class Schema extends AbstractSchema implements ConstraintFinderInterface
         $sql = 'SHOW TABLES';
 
         if ($schema !== '') {
-            $sql .= ' FROM ' . $this->quoteSimpleTableName($schema);
+            $sql .= ' FROM ' . $this->db->getQuoter()->quoteSimpleTableName($schema);
         }
 
         return $this->db->createCommand($sql)->queryColumn();
@@ -357,16 +345,6 @@ final class Schema extends AbstractSchema implements ConstraintFinderInterface
     }
 
     /**
-     * Creates a query builder for the MySQL database.
-     *
-     * @return QueryBuilder query builder instance
-     */
-    public function createQueryBuilder(): QueryBuilder
-    {
-        return new QueryBuilder($this->db);
-    }
-
-    /**
      * Resolves the table name and schema name (if any).
      *
      * @param TableSchema $table the table metadata object.
@@ -484,7 +462,7 @@ final class Schema extends AbstractSchema implements ConstraintFinderInterface
     protected function findColumns(TableSchema $table): bool
     {
         $tableName = $table->getFullName() ?? '';
-        $sql = 'SHOW FULL COLUMNS FROM ' . $this->quoteTableName($tableName);
+        $sql = 'SHOW FULL COLUMNS FROM ' . $this->db->getQuoter()->quoteTableName($tableName);
 
         try {
             $columns = $this->db->createCommand($sql)->queryAll();
@@ -540,7 +518,7 @@ final class Schema extends AbstractSchema implements ConstraintFinderInterface
 
         /** @var array<array-key, string> $row */
         $row = $this->db->createCommand(
-            'SHOW CREATE TABLE ' . $this->quoteTableName($tableName)
+            'SHOW CREATE TABLE ' . $this->db->getQuoter()->quoteTableName($tableName)
         )->queryOne();
 
         if (isset($row['Create Table'])) {
@@ -688,7 +666,7 @@ final class Schema extends AbstractSchema implements ConstraintFinderInterface
      */
     public function createColumnSchemaBuilder(string $type, array|int|string $length = null): ColumnSchemaBuilder
     {
-        return new ColumnSchemaBuilder($type, $length, $this->db);
+        return new ColumnSchemaBuilder($type, $length, $this->db->getQuoter());
     }
 
     /**

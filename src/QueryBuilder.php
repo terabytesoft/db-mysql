@@ -7,7 +7,7 @@ namespace Yiisoft\Db\Mysql;
 use JsonException;
 use PDO;
 use Throwable;
-use Yiisoft\Db\Connection\ConnectionPDOInterface;
+use Yiisoft\Db\Connection\ConnectionInterface;
 use Yiisoft\Db\Exception\Exception;
 use Yiisoft\Db\Exception\InvalidArgumentException;
 use Yiisoft\Db\Exception\InvalidConfigException;
@@ -18,7 +18,6 @@ use Yiisoft\Db\Expression\ExpressionInterface;
 use Yiisoft\Db\Expression\JsonExpression;
 use Yiisoft\Db\Query\Query;
 use Yiisoft\Db\Query\QueryBuilder as AbstractQueryBuilder;
-use Yiisoft\Db\Schema\Schema;
 
 use function array_merge;
 use function array_values;
@@ -61,9 +60,9 @@ final class QueryBuilder extends AbstractQueryBuilder
         Schema::TYPE_JSON => 'json',
     ];
 
-    public function __construct(private ConnectionPDOInterface $db)
+    public function __construct(private ConnectionInterface $db)
     {
-        parent::__construct($db);
+        parent::__construct($db->getQuoter(), $db->getSchema());
     }
 
     /**
@@ -97,7 +96,7 @@ final class QueryBuilder extends AbstractQueryBuilder
      */
     public function renameColumn(string $table, string $oldName, string $newName): string
     {
-        $quotedTable = $this->db->quoteTableName($table);
+        $quotedTable = $this->db->getQuoter()->quoteTableName($table);
 
         /** @psalm-var array<array-key, string> $row */
         $row = $this->db->createCommand('SHOW CREATE TABLE ' . $quotedTable)->queryOne();
@@ -113,8 +112,8 @@ final class QueryBuilder extends AbstractQueryBuilder
             foreach ($matches[1] as $i => $c) {
                 if ($c === $oldName) {
                     return "ALTER TABLE $quotedTable CHANGE "
-                        . $this->db->quoteColumnName($oldName) . ' '
-                        . $this->db->quoteColumnName($newName) . ' '
+                        . $this->db->getQuoter()->quoteColumnName($oldName) . ' '
+                        . $this->db->getQuoter()->quoteColumnName($newName) . ' '
                         . $matches[2][$i];
                 }
             }
@@ -122,8 +121,8 @@ final class QueryBuilder extends AbstractQueryBuilder
 
         /* try to give back a SQL anyway */
         return "ALTER TABLE $quotedTable CHANGE "
-            . $this->db->quoteColumnName($oldName) . ' '
-            . $this->db->quoteColumnName($newName);
+            . $this->db->getQuoter()->quoteColumnName($oldName) . ' '
+            . $this->db->getQuoter()->quoteColumnName($newName);
     }
 
     /**
@@ -139,18 +138,18 @@ final class QueryBuilder extends AbstractQueryBuilder
      *
      * @psalm-param array<array-key, ExpressionInterface|string>|string $columns
      *
-     * @throws Exception|InvalidArgumentException
-     *
      * @return string the SQL statement for creating a new index.
+     *
+     * @throws Exception|InvalidArgumentException
      *
      * {@see https://bugs.mysql.com/bug.php?id=48875}
      */
-    public function createIndex(string $name, string $table, $columns, bool $unique = false): string
+    public function createIndex(string $name, string $table, array|string $columns, bool $unique = false): string
     {
         return 'ALTER TABLE '
-            . $this->db->quoteTableName($table)
+            . $this->db->getQuoter()->quoteTableName($table)
             . ($unique ? ' ADD UNIQUE INDEX ' : ' ADD INDEX ')
-            . $this->db->quoteTableName($name)
+            . $this->db->getQuoter()->quoteTableName($name)
             . ' (' . $this->buildColumns($columns) . ')';
     }
 
@@ -166,8 +165,8 @@ final class QueryBuilder extends AbstractQueryBuilder
     public function dropForeignKey(string $name, string $table): string
     {
         return 'ALTER TABLE '
-            . $this->db->quoteTableName($table)
-            . ' DROP FOREIGN KEY ' . $this->db->quoteColumnName($name);
+            . $this->db->getQuoter()->quoteTableName($table)
+            . ' DROP FOREIGN KEY ' . $this->db->getQuoter()->quoteColumnName($name);
     }
 
     /**
@@ -180,8 +179,7 @@ final class QueryBuilder extends AbstractQueryBuilder
      */
     public function dropPrimaryKey(string $name, string $table): string
     {
-        return 'ALTER TABLE '
-            . $this->db->quoteTableName($table) . ' DROP PRIMARY KEY';
+        return 'ALTER TABLE ' . $this->db->getQuoter()->quoteTableName($table) . ' DROP PRIMARY KEY';
     }
 
     /**
@@ -233,19 +231,19 @@ final class QueryBuilder extends AbstractQueryBuilder
      * or 1.
      *
      * @param string $tableName the name of the table whose primary key sequence will be reset.
-     * @param mixed $value the value for the primary key of the next new row inserted. If this is not set, the next new
-     * row's primary key will have a value 1.
+     * @param array|int|string|null $value the value for the primary key of the next new row inserted. If this is not
+     * set, the next new row's primary key will have a value 1.
      *
      * @throws Exception|InvalidArgumentException|InvalidConfigException|Throwable
      *
      * @return string the SQL statement for resetting sequence.
      */
-    public function resetSequence(string $tableName, $value = null): string
+    public function resetSequence(string $tableName, array|int|string|null $value = null): string
     {
         $table = $this->db->getTableSchema($tableName);
 
         if ($table !== null && $table->getSequenceName() !== null) {
-            $tableName = $this->db->quoteTableName($tableName);
+            $tableName = $this->db->getQuoter()->quoteTableName($tableName);
 
             if ($value === null) {
                 $pk = $table->getPrimaryKey();
@@ -280,12 +278,12 @@ final class QueryBuilder extends AbstractQueryBuilder
     }
 
     /**
-     * @param Expression|int|null $limit
-     * @param Expression|int|null $offset
+     * @param int|Expression|null $limit
+     * @param int|Expression|null $offset
      *
      * @return string the LIMIT and OFFSET clauses.
      */
-    public function buildLimit($limit, $offset): string
+    public function buildLimit(Expression|int|null $limit, Expression|int|null $offset): string
     {
         $sql = '';
 
@@ -315,7 +313,7 @@ final class QueryBuilder extends AbstractQueryBuilder
      *
      * @return bool whether the limit is effective.
      */
-    protected function hasLimit($limit): bool
+    protected function hasLimit(mixed $limit): bool
     {
         /** In MySQL limit argument must be non-negative integer constant */
         return ctype_digit((string) $limit);
@@ -328,11 +326,10 @@ final class QueryBuilder extends AbstractQueryBuilder
      *
      * @return bool whether the offset is effective.
      */
-    protected function hasOffset($offset): bool
+    protected function hasOffset(mixed $offset): bool
     {
         /** In MySQL offset argument must be non-negative integer constant */
         $offset = (string) $offset;
-
         return ctype_digit($offset) && $offset !== '0';
     }
 
@@ -349,7 +346,7 @@ final class QueryBuilder extends AbstractQueryBuilder
      *
      * @return array array of column names, placeholders, values and params.
      */
-    protected function prepareInsertValues(string $table, $columns, array $params = []): array
+    protected function prepareInsertValues(string $table, Query|array $columns, array $params = []): array
     {
         /**
          * @var array $names
@@ -357,7 +354,7 @@ final class QueryBuilder extends AbstractQueryBuilder
          */
         [$names, $placeholders, $values, $params] = parent::prepareInsertValues($table, $columns, $params);
         if (!$columns instanceof Query && empty($names)) {
-            $tableSchema = $this->db->getSchema()->getTableSchema($table);
+            $tableSchema = $this->schema->getTableSchema($table);
 
             if ($tableSchema !== null) {
                 $columns = $tableSchema->getColumns();
@@ -365,7 +362,7 @@ final class QueryBuilder extends AbstractQueryBuilder
                     ? $tableSchema->getPrimaryKey() : [reset($columns)->getName()];
                 /** @var string $name */
                 foreach ($columns as $name) {
-                    $names[] = $this->db->quoteColumnName($name);
+                    $names[] = $this->db->getQuoter()->quoteColumnName($name);
                     $placeholders[] = 'DEFAULT';
                 }
             }
@@ -395,7 +392,7 @@ final class QueryBuilder extends AbstractQueryBuilder
      * @param string $table the table that new rows will be inserted into/updated in.
      * @param array|Query $insertColumns the column data (name => value) to be inserted into the table or instance of
      * {@see Query} to perform `INSERT INTO ... SELECT` SQL statement.
-     * @param array|bool $updateColumns the column data (name => value) to be updated if they already exist. If `true`
+     * @param bool|array $updateColumns the column data (name => value) to be updated if they already exist. If `true`
      * is passed, the column data will be updated to match the insert column data. If `false` is passed, no update will
      * be performed if the column data already exists.
      * @param array $params the binding parameters that will be generated by this method. They should be bound to the DB
@@ -406,7 +403,7 @@ final class QueryBuilder extends AbstractQueryBuilder
      *
      * @return string the resulting SQL.
      */
-    public function upsert(string $table, $insertColumns, $updateColumns, array &$params): string
+    public function upsert(string $table, Query|array $insertColumns, bool|array $updateColumns, array &$params): string
     {
         $insertSql = $this->insert($table, $insertColumns, $params);
 
@@ -421,12 +418,12 @@ final class QueryBuilder extends AbstractQueryBuilder
             $updateColumns = [];
             /** @var string $name */
             foreach ($updateNames as $name) {
-                $updateColumns[$name] = new Expression('VALUES(' . $this->db->quoteColumnName($name) . ')');
+                $updateColumns[$name] = new Expression('VALUES(' . $this->db->getQuoter()->quoteColumnName($name) . ')');
             }
         } elseif ($updateColumns === false) {
             $columnName = (string) reset($uniqueNames);
-            $name = $this->db->quoteColumnName($columnName);
-            $updateColumns = [$name => new Expression($this->db->quoteTableName($table) . '.' . $name)];
+            $name = $this->db->getQuoter()->quoteColumnName($columnName);
+            $updateColumns = [$name => new Expression($this->db->getQuoter()->quoteTableName($table) . '.' . $name)];
         }
 
         /**
@@ -469,11 +466,11 @@ final class QueryBuilder extends AbstractQueryBuilder
             $definition = preg_replace($checkRegex, '', $definition);
         }
 
-        $alterSql = 'ALTER TABLE ' . $this->db->quoteTableName($table)
-            . ' CHANGE ' . $this->db->quoteColumnName($column)
-            . ' ' . $this->db->quoteColumnName($column)
+        $alterSql = 'ALTER TABLE ' . $this->db->getQuoter()->quoteTableName($table)
+            . ' CHANGE ' . $this->db->getQuoter()->quoteColumnName($column)
+            . ' ' . $this->db->getQuoter()->quoteColumnName($column)
             . (empty($definition) ? '' : ' ' . $definition)
-            . ' COMMENT ' . $this->db->quoteValue($comment);
+            . ' COMMENT ' . $this->db->getQuoter()->quoteValue($comment);
 
         if ($check === 1) {
             $alterSql .= ' ' . $checkMatches[0];
@@ -495,7 +492,8 @@ final class QueryBuilder extends AbstractQueryBuilder
      */
     public function addCommentOnTable(string $table, string $comment): string
     {
-        return 'ALTER TABLE ' . $this->db->quoteTableName($table) . ' COMMENT ' . $this->db->quoteValue($comment);
+        return 'ALTER TABLE ' . $this->db->getQuoter()->quoteTableName($table)
+            . ' COMMENT ' . $this->db->getQuoter()->quoteValue($comment);
     }
 
     /**
@@ -544,7 +542,7 @@ final class QueryBuilder extends AbstractQueryBuilder
     {
         $result = '';
 
-        $quotedTable = $this->db->quoteTableName($table);
+        $quotedTable = $this->db->getQuoter()->quoteTableName($table);
 
         /** @var array<array-key, string> $row */
         $row = $this->db->createCommand('SHOW CREATE TABLE ' . $quotedTable)->queryOne();
@@ -618,7 +616,6 @@ final class QueryBuilder extends AbstractQueryBuilder
     public function getColumnType($type): string
     {
         $this->typeMap = array_merge($this->typeMap, $this->defaultTimeTypeMap());
-
         return parent::getColumnType($type);
     }
 
@@ -663,15 +660,6 @@ final class QueryBuilder extends AbstractQueryBuilder
      */
     private function supportsFractionalSeconds(): bool
     {
-        $result = false;
-        $slavePdo = $this->db->getSlavePdo();
-
-        if ($slavePdo !== null) {
-            /** @var string $version */
-            $version = $slavePdo->getAttribute(PDO::ATTR_SERVER_VERSION);
-            $result = version_compare($version, '5.6.4', '>=');
-        }
-
-        return $result;
+        return version_compare($this->db->getServerVersion(), '5.6.4', '>=');
     }
 }
