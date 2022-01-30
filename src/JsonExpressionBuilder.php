@@ -27,14 +27,6 @@ final class JsonExpressionBuilder implements ExpressionBuilderInterface
 
     public const PARAM_PREFIX = ':qp';
 
-    /**
-     * @param ExpressionInterface $expression the expression to be built.
-     * @param array $params
-     *
-     * @throws Exception|InvalidArgumentException|InvalidConfigException|JsonException|NotSupportedException
-     *
-     * @return string
-     */
     public function build(ExpressionInterface $expression, array &$params = []): string
     {
         /**

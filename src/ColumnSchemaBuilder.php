@@ -17,7 +17,7 @@ final class ColumnSchemaBuilder extends AbstractColumnSchemaBuilder
     /**
      *  @param array|int|string|null $length column size or precision definition.
      */
-    public function __construct(string $type, $length, private ConnectionInterface $db)
+    public function __construct(string $type, $length, private Quoter $quoter)
     {
         parent::__construct($type, $length);
     }
@@ -39,7 +39,7 @@ final class ColumnSchemaBuilder extends AbstractColumnSchemaBuilder
      */
     protected function buildAfterString(): string
     {
-        return $this->getAfter() !== null ? ' AFTER ' . $this->db->quoteColumnName((string) $this->getAfter()) : '';
+        return $this->getAfter() !== null ? ' AFTER ' . $this->quoter->quoteColumnName((string) $this->getAfter()) : '';
     }
 
     /**
@@ -61,7 +61,8 @@ final class ColumnSchemaBuilder extends AbstractColumnSchemaBuilder
      */
     protected function buildCommentString(): string
     {
-        return $this->getComment() !== null ? ' COMMENT ' . $this->db->quoteValue((string) $this->getComment()) : '';
+        return $this->getComment() !== null ? ' COMMENT '
+            . $this->quoter->quoteValue((string) $this->getComment()) : '';
     }
 
     public function __toString(): string
