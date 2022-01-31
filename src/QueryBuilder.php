@@ -346,7 +346,7 @@ final class QueryBuilder extends AbstractQueryBuilder
          */
         [$names, $placeholders, $values, $params] = parent::prepareInsertValues($table, $columns, $params);
         if (!$columns instanceof Query && empty($names)) {
-            $tableSchema = $this->schema->getTableSchema($table);
+            $tableSchema = $this->db->getSchema()->getTableSchema($table);
 
             if ($tableSchema !== null) {
                 $columns = $tableSchema->getColumns();
