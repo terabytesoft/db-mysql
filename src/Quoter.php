@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Yiisoft\Db\Mysql;
 
-use Yiisoft\Db\Driver\PDODriver;
 use Yiisoft\Db\Schema\Quoter as BaseQuoter;
 use Yiisoft\Db\Schema\QuoterInterface;
 
@@ -13,10 +12,9 @@ final class Quoter extends BaseQuoter implements QuoterInterface
     public function __construct(
         private array|string $columnQuoteCharacter,
         private array|string $tableQuoteCharacter,
-        private PDODriver $PDODriver,
         private string $tablePrefix = ''
     ) {
-        parent::__construct($columnQuoteCharacter, $tableQuoteCharacter, $PDODriver, $tablePrefix);
+        parent::__construct($columnQuoteCharacter, $tableQuoteCharacter, $tablePrefix);
     }
 
     public function quoteValue(int|string $value): int|string
