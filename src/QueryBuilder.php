@@ -65,22 +65,14 @@ final class QueryBuilder extends AbstractQueryBuilder
         parent::__construct($db->getQuoter(), $db->getSchema());
     }
 
-    /**
-     * Contains array of default expression builders. Extend this method and override it, if you want to change default
-     * expression builders for this query builder.
-     *
-     * @return array
-     *
-     * See {@see ExpressionBuilder} docs for details.
-     */
-    protected function defaultExpressionBuilders(): array
+    public function addDefaultValue(string $name, string $table, string $column, $value): string
     {
-        return array_merge(
-            parent::defaultExpressionBuilders(),
-            [
-                JsonExpression::class => JsonExpressionBuilder::class,
-            ]
-        );
+        throw new NotSupportedException('Mysql does not support adding default value constraints.');
+    }
+
+    public function dropDefaultValue(string $name, string $table): string
+    {
+        throw new NotSupportedException('Mysql does not support dropping default value constraints.');
     }
 
     /**
@@ -418,7 +410,9 @@ final class QueryBuilder extends AbstractQueryBuilder
             $updateColumns = [];
             /** @var string $name */
             foreach ($updateNames as $name) {
-                $updateColumns[$name] = new Expression('VALUES(' . $this->db->getQuoter()->quoteColumnName($name) . ')');
+                $updateColumns[$name] = new Expression(
+                    'VALUES(' . $this->db->getQuoter()->quoteColumnName($name) . ')'
+                );
             }
         } elseif ($updateColumns === false) {
             $columnName = (string) reset($uniqueNames);
@@ -617,6 +611,24 @@ final class QueryBuilder extends AbstractQueryBuilder
     {
         $this->typeMap = array_merge($this->typeMap, $this->defaultTimeTypeMap());
         return parent::getColumnType($type);
+    }
+
+    /**
+     * Contains array of default expression builders. Extend this method and override it, if you want to change default
+     * expression builders for this query builder.
+     *
+     * @return array
+     *
+     * See {@see ExpressionBuilder} docs for details.
+     */
+    protected function defaultExpressionBuilders(): array
+    {
+        return array_merge(
+            parent::defaultExpressionBuilders(),
+            [
+                JsonExpression::class => JsonExpressionBuilder::class,
+            ]
+        );
     }
 
     /**
