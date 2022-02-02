@@ -15,8 +15,9 @@ use Yiisoft\Db\Exception\NotSupportedException;
 use Yiisoft\Db\Expression\Expression;
 use Yiisoft\Db\Expression\JsonExpression;
 use Yiisoft\Db\Mysql\ColumnSchema;
-use Yiisoft\Db\Mysql\QueryBuilder;
+use Yiisoft\Db\Mysql\PDO\QueryBuilderPDOMysql;
 use Yiisoft\Db\Query\Query;
+use Yiisoft\Db\Query\QueryBuilderInterface;
 use Yiisoft\Db\TestSupport\TestQueryBuilderTrait;
 
 use function array_merge;
@@ -32,11 +33,11 @@ final class QueryBuilderTest extends TestCase
     /**
      * @param bool $reset
      *
-     * @return QueryBuilder
+     * @return QueryBuilderInterface
      */
-    protected function getQueryBuilder(ConnectionInterface $db): QueryBuilder
+    protected function getQueryBuilder(ConnectionInterface $db): QueryBuilderInterface
     {
-        return new QueryBuilder($db);
+        return new QueryBuilderPDOMysql($db);
     }
 
     public function testResetSequence(): void
@@ -608,21 +609,14 @@ final class QueryBuilderTest extends TestCase
         $this->assertEquals($this->replaceQuotes($expected), $sql);
     }
 
-    public function testAddCheck(): void
-    {
-        $db = $this->getConnection();
-        $qb = $this->getQueryBuilder($db);
-        $this->expectException(NotSupportedException::class);
-        $this->expectExceptionMessage('Yiisoft\Db\Mysql\QueryBuilder::addCheck is not supported by MySQL.');
-        $qb->addCheck('noExist', 'noExist', 'noExist');
-    }
-
     public function testDropCheck(): void
     {
         $db = $this->getConnection();
         $qb = $this->getQueryBuilder($db);
         $this->expectException(NotSupportedException::class);
-        $this->expectExceptionMessage('Yiisoft\Db\Mysql\QueryBuilder::dropCheck is not supported by MySQL.');
+        $this->expectExceptionMessage(
+            'Yiisoft\Db\Mysql\PDO\QueryBuilderPDOMysql::dropCheck is not supported by MySQL.'
+        );
         $qb->dropCheck('noExist', 'noExist');
     }
 }

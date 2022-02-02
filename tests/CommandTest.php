@@ -20,6 +20,14 @@ final class CommandTest extends TestCase
 
     protected string $upsertTestCharCast = 'CONVERT([[address]], CHAR)';
 
+    public function testAddCheck(): void
+    {
+        $db = $this->getConnection();
+        $this->expectException(NotSupportedException::class);
+        $this->expectExceptionMessage('Yiisoft\Db\Mysql\PDO\CommandPDOMysql::addCheck is not supported by MySQL.');
+        $db->createCommand()->addCheck('noExist', 'noExist', 'noExist')->execute();
+    }
+
     public function testAddDropPrimaryKey(): void
     {
         $db = $this->getConnection();

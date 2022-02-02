@@ -6,7 +6,7 @@ namespace Yiisoft\Db\Mysql\Tests;
 
 use PHPUnit\Framework\TestCase as AbstractTestCase;
 use Yiisoft\Db\Driver\PDODriver;
-use Yiisoft\Db\Mysql\ConnectionPDOMysql;
+use Yiisoft\Db\Mysql\PDO\ConnectionPDOMysql;
 use Yiisoft\Db\TestSupport\TestTrait;
 
 class TestCase extends AbstractTestCase
