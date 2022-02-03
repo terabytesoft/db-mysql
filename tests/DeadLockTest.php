@@ -9,7 +9,7 @@ use RuntimeException;
 use Throwable;
 use Yiisoft\Db\Exception\Exception;
 use Yiisoft\Db\Connection\ConnectionInterface;
-use Yiisoft\Db\Transaction\Transaction;
+use Yiisoft\Db\Mysql\PDO\TransactionPDOMysql;
 
 use function date;
 use function file_get_contents;
@@ -235,7 +235,7 @@ final class DeadLockTest extends TestCase
 
                     $this->log('child 1: commit');
                 });
-            }, Transaction::REPEATABLE_READ);
+            }, TransactionPDOMysql::REPEATABLE_READ);
         } catch (Exception $e) {
             [$sqlError, $driverError, $driverMessage] = $e->errorInfo;
 
@@ -320,7 +320,7 @@ final class DeadLockTest extends TestCase
 
                     $this->log('child 2: commit');
                 });
-            }, Transaction::REPEATABLE_READ);
+            }, TransactionPDOMysql::REPEATABLE_READ);
         } catch (Exception $e) {
             [$sqlError, $driverError, $driverMessage] = $e->errorInfo;
 
