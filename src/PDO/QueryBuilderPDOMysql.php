@@ -18,7 +18,7 @@ use Yiisoft\Db\Expression\ExpressionInterface;
 use Yiisoft\Db\Expression\JsonExpression;
 use Yiisoft\Db\Mysql\JsonExpressionBuilder;
 use Yiisoft\Db\Query\Query;
-use Yiisoft\Db\Query\QueryBuilder as AbstractQueryBuilder;
+use Yiisoft\Db\Query\QueryBuilder;
 
 use function array_merge;
 use function array_values;
@@ -34,7 +34,7 @@ use function version_compare;
 /**
  * The class QueryBuilder is the query builder for Mysql databases.
  */
-final class QueryBuilderPDOMysql extends AbstractQueryBuilder
+final class QueryBuilderPDOMysql extends QueryBuilder
 {
     /**
      * @var array<string, string> mapping from abstract column types (keys) to physical column types (values).

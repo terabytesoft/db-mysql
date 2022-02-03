@@ -12,7 +12,6 @@ use Yiisoft\Arrays\ArrayHelper;
 use Yiisoft\Db\Cache\SchemaCache;
 use Yiisoft\Db\Connection\ConnectionPDOInterface;
 use Yiisoft\Db\Constraint\Constraint;
-use Yiisoft\Db\Constraint\ConstraintFinderInterface;
 use Yiisoft\Db\Constraint\ConstraintFinderTrait;
 use Yiisoft\Db\Constraint\ForeignKeyConstraint;
 use Yiisoft\Db\Constraint\IndexConstraint;
@@ -23,7 +22,7 @@ use Yiisoft\Db\Expression\Expression;
 use Yiisoft\Db\Mysql\ColumnSchema;
 use Yiisoft\Db\Mysql\ColumnSchemaBuilder;
 use Yiisoft\Db\Mysql\TableSchema;
-use Yiisoft\Db\Schema\Schema as AbstractSchema;
+use Yiisoft\Db\Schema\Schema;
 
 use function array_change_key_case;
 use function array_map;
@@ -98,10 +97,8 @@ use function trim;
  *   }
  * >
  */
-final class SchemaPDOMysql extends AbstractSchema implements ConstraintFinderInterface
+final class SchemaPDOMysql extends Schema
 {
-    use ConstraintFinderTrait;
-
     /** @var array<array-key, string> $typeMap */
     private array $typeMap = [
         'tinyint' => self::TYPE_TINYINT,

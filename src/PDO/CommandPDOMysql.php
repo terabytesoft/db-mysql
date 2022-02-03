@@ -4,22 +4,24 @@ declare(strict_types=1);
 
 namespace Yiisoft\Db\Mysql\PDO;
 
-use Exception;
+use PDOException;
 use Yiisoft\Db\Cache\QueryCache;
-use Yiisoft\Db\Command\Command as AbstractCommand;
+use Yiisoft\Db\Command\Command;
 use Yiisoft\Db\Connection\ConnectionPDOInterface;
+use Yiisoft\Db\Exception\Exception;
+use Yiisoft\Db\Exception\InvalidConfigException;
 use Yiisoft\Db\Exception\NotSupportedException;
 use Yiisoft\Db\Query\QueryBuilderInterface;
 use Yiisoft\Db\Schema\QuoterInterface;
 use Yiisoft\Db\Schema\SchemaInterface;
 
-final class CommandPDOMysql extends AbstractCommand
+final class CommandPDOMysql extends Command
 {
     public function __construct(
         private ConnectionPDOInterface $db,
-        private QueryBuilderInterface $queryBuilder,
-        private QueryCache $queryCache,
-        private QuoterInterface $quoter,
+        QueryBuilderInterface $queryBuilder,
+        QueryCache $queryCache,
+        QuoterInterface $quoter,
         private SchemaInterface $schema
     ) {
         parent::__construct($queryBuilder, $queryCache, $quoter, $schema);
@@ -36,9 +38,12 @@ final class CommandPDOMysql extends AbstractCommand
      */
     public function addCheck(string $name, string $table, string $expression): self
     {
-        throw new NotSupportedException(static::class . '::addCheck is not supported by MySQL.');
+        throw new NotSupportedException(CommandPDOMysql::class . '::addCheck is not supported by MySQL.');
     }
 
+    /**
+     * @throws PDOException|InvalidConfigException
+     */
     public function prepare(?bool $forRead = null): void
     {
         if (isset($this->pdoStatement)) {
@@ -63,9 +68,9 @@ final class CommandPDOMysql extends AbstractCommand
         try {
             $this->pdoStatement = $pdo->prepare($sql);
             $this->bindPendingParams();
-        } catch (Exception $e) {
+        } catch (PDOException $e) {
             $message = $e->getMessage() . "\nFailed to prepare SQL: $sql";
-            $errorInfo = $e instanceof PDOException ? $e->errorInfo : null;
+            $errorInfo = $e->errorInfo ?? null;
 
             throw new Exception($message, $errorInfo, $e);
         }
