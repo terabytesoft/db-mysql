@@ -7,7 +7,7 @@ namespace Yiisoft\Db\Mysql\PDO;
 use Psr\Log\LogLevel;
 use Throwable;
 use Yiisoft\Db\AwareTrait\LoggerAwareTrait;
-use Yiisoft\Db\Connection\ConnectionInterface;
+use Yiisoft\Db\Connection\ConnectionPDOInterface;
 use Yiisoft\Db\Exception\Exception;
 use Yiisoft\Db\Exception\InvalidConfigException;
 use Yiisoft\Db\Exception\NotSupportedException;
@@ -47,17 +47,12 @@ final class TransactionPDOMysql implements TransactionInterface
 
     private int $level = 0;
 
-    public function __construct(private ConnectionInterface $db)
+    public function __construct(private ConnectionPDOInterface $db)
     {
-        $this->db = $db;
     }
 
     public function begin(?string $isolationLevel = null): void
     {
-        if ($this->db === null) {
-            throw new InvalidConfigException('Transaction::db must be set.');
-        }
-
         $this->db->open();
 
         if ($this->level === 0) {
@@ -73,7 +68,7 @@ final class TransactionPDOMysql implements TransactionInterface
                 );
             }
 
-            $this->db->getPDO()->beginTransaction();
+            $this->db->getPDO()?->beginTransaction();
             $this->level = 1;
 
             return;
@@ -119,7 +114,7 @@ final class TransactionPDOMysql implements TransactionInterface
                 $this->logger->log(LogLevel::DEBUG, 'Commit transaction ' . __METHOD__);
             }
 
-            $this->db->getPDO()->commit();
+            $this->db->getPDO()?->commit();
 
             return;
         }
@@ -149,7 +144,7 @@ final class TransactionPDOMysql implements TransactionInterface
 
     public function isActive(): bool
     {
-        return $this->level > 0 && $this->db && $this->db->isActive();
+        return $this->level > 0 && $this->db->isActive();
     }
 
     public function rollBack(): void
@@ -168,7 +163,7 @@ final class TransactionPDOMysql implements TransactionInterface
                 $this->logger->log(LogLevel::INFO, 'Roll back transaction ' . __METHOD__);
             }
 
-            $this->db->getPDO()->rollBack();
+            $this->db->getPDO()?->rollBack();
 
             return;
         }

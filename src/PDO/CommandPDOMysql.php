@@ -42,7 +42,7 @@ final class CommandPDOMysql extends Command
     }
 
     /**
-     * @throws PDOException|InvalidConfigException
+     * @throws \Exception|Exception|PDOException|InvalidConfigException
      */
     public function prepare(?bool $forRead = null): void
     {
@@ -52,7 +52,7 @@ final class CommandPDOMysql extends Command
             return;
         }
 
-        $sql = $this->getSql();
+        $sql = $this->getSql() ?? '';
 
         if ($this->db->getTransaction()) {
             /** master is in a transaction. use the same connection. */
@@ -66,10 +66,11 @@ final class CommandPDOMysql extends Command
         }
 
         try {
-            $this->pdoStatement = $pdo->prepare($sql);
+            $this->pdoStatement = $pdo?->prepare($sql);
             $this->bindPendingParams();
         } catch (PDOException $e) {
             $message = $e->getMessage() . "\nFailed to prepare SQL: $sql";
+            /** @var array|null */
             $errorInfo = $e->errorInfo ?? null;
 
             throw new Exception($message, $errorInfo, $e);
@@ -99,9 +100,9 @@ final class CommandPDOMysql extends Command
                     && $this->isolationLevel !== null
                     && $this->db->getTransaction() === null
                 ) {
-                    $this->db->transaction(fn ($rawSql) => $this->internalExecute($rawSql), $this->isolationLevel);
+                    $this->db->transaction(fn (?string $rawSql) => $this->internalExecute($rawSql), $this->isolationLevel);
                 } else {
-                    $this->pdoStatement->execute();
+                    $this->pdoStatement?->execute();
                 }
                 break;
             } catch (\Exception $e) {

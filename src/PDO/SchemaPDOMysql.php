@@ -12,10 +12,10 @@ use Yiisoft\Arrays\ArrayHelper;
 use Yiisoft\Db\Cache\SchemaCache;
 use Yiisoft\Db\Connection\ConnectionPDOInterface;
 use Yiisoft\Db\Constraint\Constraint;
-use Yiisoft\Db\Constraint\ConstraintFinderTrait;
 use Yiisoft\Db\Constraint\ForeignKeyConstraint;
 use Yiisoft\Db\Constraint\IndexConstraint;
 use Yiisoft\Db\Exception\Exception;
+use Yiisoft\Db\Exception\InvalidCallException;
 use Yiisoft\Db\Exception\InvalidConfigException;
 use Yiisoft\Db\Exception\NotSupportedException;
 use Yiisoft\Db\Expression\Expression;
@@ -132,8 +132,6 @@ final class SchemaPDOMysql extends Schema
         'json' => self::TYPE_JSON,
     ];
 
-    private ?string $serverVersion = null;
-
     public function __construct(private ConnectionPDOInterface $db, SchemaCache $schemaCache)
     {
         parent::__construct($schemaCache);
@@ -155,10 +153,6 @@ final class SchemaPDOMysql extends Schema
     }
 
     /**
-     * Creates a new savepoint.
-     *
-     * @param string $name the savepoint name
-     *
      * @throws Exception|InvalidConfigException|Throwable
      */
     public function createSavepoint(string $name): void
@@ -216,8 +210,10 @@ final class SchemaPDOMysql extends Schema
      */
     public function getLastInsertID(string $sequenceName = ''): string
     {
-        if ($this->db->isActive()) {
-            return $this->db->getPDO()->lastInsertId(
+        $pdo = $this->db->getPDO();
+
+        if ($this->db->isActive() && $pdo !== null) {
+            return $pdo->lastInsertId(
                 $sequenceName === '' ? null : $this->db->getQuoter()->quoteTableName($sequenceName)
             );
         }
@@ -237,29 +233,13 @@ final class SchemaPDOMysql extends Schema
      */
     public function getRawTableName(string $name): string
     {
-        if (strpos($name, '{{') !== false) {
+        if (str_contains($name, '{{')) {
             $name = preg_replace('/{{(.*?)}}/', '\1', $name);
 
             return str_replace('%', $this->db->getTablePrefix(), $name);
         }
 
         return $name;
-    }
-
-    /**
-     * Returns a server version as a string comparable by {@see version_compare()}.
-     *
-     * @throws Exception
-     *
-     * @return string server version as a string.
-     */
-    public function getServerVersion(): string
-    {
-        if ($this->serverVersion === null) {
-            $this->serverVersion = $this->db->getSlavePdo()->getAttribute(PDO::ATTR_SERVER_VERSION);
-        }
-
-        return $this->serverVersion;
     }
 
     /**
@@ -272,24 +252,28 @@ final class SchemaPDOMysql extends Schema
      *
      * @return array|false primary key values or false if the command fails.
      */
-    public function insert(string $table, array $columns)
+    public function insert(string $table, array $columns): bool|array
     {
         $command = $this->db->createCommand()->insert($table, $columns);
+        $result = [];
 
         if (!$command->execute()) {
             return false;
         }
 
         $tableSchema = $this->getTableSchema($table);
-        $result = [];
 
-        foreach ($tableSchema->getPrimaryKey() as $name) {
-            if ($tableSchema->getColumn($name)->isAutoIncrement()) {
-                $result[$name] = $this->getLastInsertID($tableSchema->getSequenceName());
-                break;
+        if ($tableSchema !== null) {
+            /** @var string $name */
+            foreach ($tableSchema->getPrimaryKey() as $name) {
+                if ($tableSchema->getColumn($name)?->isAutoIncrement()) {
+                    $result[$name] = $this->getLastInsertID($tableSchema->getSequenceName() ?? '');
+                    break;
+                }
+
+                /** @var string|null */
+                $result[$name] = $columns[$name] ?? $tableSchema->getColumn($name)?->getDefaultValue();
             }
-
-            $result[$name] = $columns[$name] ?? $tableSchema->getColumn($name)->getDefaultValue();
         }
 
         return $result;
@@ -301,10 +285,6 @@ final class SchemaPDOMysql extends Schema
     }
 
     /**
-     * Releases an existing savepoint.
-     *
-     * @param string $name the savepoint name
-     *
      * @throws Exception|InvalidConfigException|Throwable
      */
     public function releaseSavepoint(string $name): void
@@ -317,9 +297,6 @@ final class SchemaPDOMysql extends Schema
         $this->db->createCommand("SET TRANSACTION ISOLATION LEVEL $level")->execute();
     }
 
-    /**
-     * @return bool whether this DBMS supports [savepoint](http://en.wikipedia.org/wiki/Savepoint).
-     */
     public function supportsSavepoint(): bool
     {
         return $this->db->isSavepointEnabled();
@@ -928,13 +905,13 @@ final class SchemaPDOMysql extends Schema
      * @param array $row row's array or an array of row's arrays.
      * @param bool $multiple whether multiple rows or a single row passed.
      *
-     * @throws Exception
+     * @throws \Exception
      *
      * @return array normalized row or rows.
      */
     protected function normalizePdoRowKeyCase(array $row, bool $multiple): array
     {
-        if ($this->db->getSlavePdo()->getAttribute(PDO::ATTR_CASE) !== PDO::CASE_UPPER) {
+        if ($this->db->getSlavePdo()?->getAttribute(PDO::ATTR_CASE) !== PDO::CASE_UPPER) {
             return $row;
         }
 

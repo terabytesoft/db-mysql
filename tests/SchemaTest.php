@@ -256,13 +256,13 @@ final class SchemaTest extends TestCase
         }
 
         $sql = <<<SQL
-CREATE TABLE  IF NOT EXISTS `datetime_test`  (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `dt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
-SQL;
+        CREATE TABLE  IF NOT EXISTS `datetime_test`  (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `dt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8
+        SQL;
 
         $this->getConnection()->createCommand($sql)->execute();
 
@@ -283,11 +283,11 @@ SQL;
         }
 
         $sql = <<<SQL
-CREATE TABLE  IF NOT EXISTS `current_timestamp_test`  (
-  `dt` datetime(2) NOT NULL DEFAULT CURRENT_TIMESTAMP(2),
-  `ts` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
-SQL;
+        CREATE TABLE  IF NOT EXISTS `current_timestamp_test`  (
+            `dt` datetime(2) NOT NULL DEFAULT CURRENT_TIMESTAMP(2),
+            `ts` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8
+        SQL;
 
         $this->getConnection()->createCommand($sql)->execute();
 

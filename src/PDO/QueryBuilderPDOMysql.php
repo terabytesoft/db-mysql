@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Yiisoft\Db\Mysql\PDO;
 
 use JsonException;
-use PDO;
 use Throwable;
 use Yiisoft\Db\Connection\ConnectionInterface;
 use Yiisoft\Db\Exception\Exception;
@@ -16,9 +15,11 @@ use Yiisoft\Db\Expression\Expression;
 use Yiisoft\Db\Expression\ExpressionBuilder;
 use Yiisoft\Db\Expression\ExpressionInterface;
 use Yiisoft\Db\Expression\JsonExpression;
+use Yiisoft\Db\Mysql\ColumnSchemaBuilder;
 use Yiisoft\Db\Mysql\JsonExpressionBuilder;
 use Yiisoft\Db\Query\Query;
 use Yiisoft\Db\Query\QueryBuilder;
+use Yiisoft\Db\Schema\Schema;
 
 use function array_merge;
 use function array_values;
@@ -40,25 +41,25 @@ final class QueryBuilderPDOMysql extends QueryBuilder
      * @var array<string, string> mapping from abstract column types (keys) to physical column types (values).
      */
     protected array $typeMap = [
-        SchemaPDOMysql::TYPE_PK => 'int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY',
-        SchemaPDOMysql::TYPE_UPK => 'int(10) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY',
-        SchemaPDOMysql::TYPE_BIGPK => 'bigint(20) NOT NULL AUTO_INCREMENT PRIMARY KEY',
-        SchemaPDOMysql::TYPE_UBIGPK => 'bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY',
-        SchemaPDOMysql::TYPE_CHAR => 'char(1)',
-        SchemaPDOMysql::TYPE_STRING => 'varchar(255)',
-        SchemaPDOMysql::TYPE_TEXT => 'text',
-        SchemaPDOMysql::TYPE_TINYINT => 'tinyint(3)',
-        SchemaPDOMysql::TYPE_SMALLINT => 'smallint(6)',
-        SchemaPDOMysql::TYPE_INTEGER => 'int(11)',
-        SchemaPDOMysql::TYPE_BIGINT => 'bigint(20)',
-        SchemaPDOMysql::TYPE_FLOAT => 'float',
-        SchemaPDOMysql::TYPE_DOUBLE => 'double',
-        SchemaPDOMysql::TYPE_DECIMAL => 'decimal(10,0)',
-        SchemaPDOMysql::TYPE_DATE => 'date',
-        SchemaPDOMysql::TYPE_BINARY => 'blob',
-        SchemaPDOMysql::TYPE_BOOLEAN => 'tinyint(1)',
-        SchemaPDOMysql::TYPE_MONEY => 'decimal(19,4)',
-        SchemaPDOMysql::TYPE_JSON => 'json',
+        Schema::TYPE_PK => 'int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY',
+        Schema::TYPE_UPK => 'int(10) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY',
+        Schema::TYPE_BIGPK => 'bigint(20) NOT NULL AUTO_INCREMENT PRIMARY KEY',
+        Schema::TYPE_UBIGPK => 'bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY',
+        Schema::TYPE_CHAR => 'char(1)',
+        Schema::TYPE_STRING => 'varchar(255)',
+        Schema::TYPE_TEXT => 'text',
+        Schema::TYPE_TINYINT => 'tinyint(3)',
+        Schema::TYPE_SMALLINT => 'smallint(6)',
+        Schema::TYPE_INTEGER => 'int(11)',
+        Schema::TYPE_BIGINT => 'bigint(20)',
+        Schema::TYPE_FLOAT => 'float',
+        Schema::TYPE_DOUBLE => 'double',
+        Schema::TYPE_DECIMAL => 'decimal(10,0)',
+        Schema::TYPE_DATE => 'date',
+        Schema::TYPE_BINARY => 'blob',
+        Schema::TYPE_BOOLEAN => 'tinyint(1)',
+        Schema::TYPE_MONEY => 'decimal(19,4)',
+        Schema::TYPE_JSON => 'json',
     ];
 
     public function __construct(private ConnectionInterface $db)
@@ -117,7 +118,7 @@ final class QueryBuilderPDOMysql extends QueryBuilder
      * method.
      * @param string $comment the text of the comment to be added. The comment will be properly quoted by the method.
      *
-     * @throws Exception
+     * @throws \Exception
      *
      * @return string the SQL statement for adding comment on table.
      */
@@ -234,7 +235,7 @@ final class QueryBuilderPDOMysql extends QueryBuilder
      * @param string $table the table whose column is to be commented. The table name will be properly quoted by the
      * method.
      *
-     * @throws Exception
+     * @throws \Exception
      *
      * @return string the SQL statement for adding comment on column.
      */
@@ -329,9 +330,7 @@ final class QueryBuilderPDOMysql extends QueryBuilder
      *
      * If a type cannot be found in {@see typeMap}, it will be returned without any change.
      *
-     * @param ColumnSchemaBuilder|string $type abstract column type
-     *
-     * @throws Exception
+     * @param ColumnSchemaBuilder|string $type abstract column type.
      *
      * @return string physical column type.
      */
@@ -577,24 +576,22 @@ final class QueryBuilderPDOMysql extends QueryBuilder
      * If the version of MySQL is lower than 5.6.4, then the types will be without fractional seconds, otherwise with
      * fractional seconds.
      *
-     * @throws Exception
-     *
      * @return array
      * @psalm-return array<string, string>
      */
     private function defaultTimeTypeMap(): array
     {
         $map = [
-            SchemaPDOMysql::TYPE_DATETIME => 'datetime',
-            SchemaPDOMysql::TYPE_TIMESTAMP => 'timestamp',
-            SchemaPDOMysql::TYPE_TIME => 'time',
+            Schema::TYPE_DATETIME => 'datetime',
+            Schema::TYPE_TIMESTAMP => 'timestamp',
+            Schema::TYPE_TIME => 'time',
         ];
 
         if ($this->supportsFractionalSeconds()) {
             $map = [
-                SchemaPDOMysql::TYPE_DATETIME => 'datetime(0)',
-                SchemaPDOMysql::TYPE_TIMESTAMP => 'timestamp(0)',
-                SchemaPDOMysql::TYPE_TIME => 'time(0)',
+                Schema::TYPE_DATETIME => 'datetime(0)',
+                Schema::TYPE_TIMESTAMP => 'timestamp(0)',
+                Schema::TYPE_TIME => 'time(0)',
             ];
         }
 
@@ -640,8 +637,6 @@ final class QueryBuilderPDOMysql extends QueryBuilder
 
     /**
      * Checks the ability to use fractional seconds.
-     *
-     * @throws Exception
      *
      * {@see https://dev.mysql.com/doc/refman/5.6/en/fractional-seconds.html}
      *
