@@ -176,6 +176,9 @@ final class ConnectionPDOMysql extends Connection implements ConnectionPDOInterf
         return $this->quoter;
     }
 
+    /**
+     * @throws Exception
+     */
     public function getServerVersion(): string
     {
         if ($this->serverVersion === '') {
