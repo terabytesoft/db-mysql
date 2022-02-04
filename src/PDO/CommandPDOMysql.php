@@ -11,6 +11,7 @@ use Yiisoft\Db\Connection\ConnectionPDOInterface;
 use Yiisoft\Db\Exception\Exception;
 use Yiisoft\Db\Exception\InvalidConfigException;
 use Yiisoft\Db\Exception\NotSupportedException;
+use Yiisoft\Db\Mysql\DDLCommand;
 use Yiisoft\Db\Query\QueryBuilderInterface;
 use Yiisoft\Db\Schema\QuoterInterface;
 use Yiisoft\Db\Schema\SchemaInterface;
@@ -39,6 +40,11 @@ final class CommandPDOMysql extends Command
     public function addCheck(string $name, string $table, string $expression): self
     {
         throw new NotSupportedException(CommandPDOMysql::class . '::addCheck is not supported by MySQL.');
+    }
+
+    public function getDDLCommand(): DDLCommand
+    {
+        return new DDLCommand($this->quoter);
     }
 
     /**
