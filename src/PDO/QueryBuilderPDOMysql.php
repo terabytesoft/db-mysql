@@ -383,45 +383,6 @@ final class QueryBuilderPDOMysql extends QueryBuilder
     }
 
     /**
-     * Creates a SQL statement for resetting the sequence value of a table's primary key.
-     *
-     * The sequence will be reset such that the primary key of the next new row inserted will have the specified value
-     * or 1.
-     *
-     * @param string $tableName the name of the table whose primary key sequence will be reset.
-     * @param array|int|string|null $value the value for the primary key of the next new row inserted. If this is not
-     * set, the next new row's primary key will have a value 1.
-     *
-     * @throws Exception|InvalidArgumentException|InvalidConfigException|Throwable
-     *
-     * @return string the SQL statement for resetting sequence.
-     */
-    public function resetSequence(string $tableName, array|int|string|null $value = null): string
-    {
-        $table = $this->db->getTableSchema($tableName);
-
-        if ($table !== null && $table->getSequenceName() !== null) {
-            $tableName = $this->db->getQuoter()->quoteTableName($tableName);
-
-            if ($value === null) {
-                $pk = $table->getPrimaryKey();
-                $key = (string) reset($pk);
-                $value = (int) $this->db->createCommand("SELECT MAX(`$key`) FROM $tableName")->queryScalar() + 1;
-            } else {
-                $value = (int) $value;
-            }
-
-            return "ALTER TABLE $tableName AUTO_INCREMENT=$value";
-        }
-
-        if ($table === null) {
-            throw new InvalidArgumentException("Table not found: $tableName");
-        }
-
-        throw new InvalidArgumentException("There is no sequence associated with table '$tableName'.");
-    }
-
-    /**
      * Creates an SQL statement to insert rows into a database table if they do not already exist (matching unique
      * constraints), or update them if they do.
      *

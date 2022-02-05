@@ -40,38 +40,6 @@ final class QueryBuilderTest extends TestCase
         return new QueryBuilderPDOMysql($db);
     }
 
-    public function testResetSequence(): void
-    {
-        $db = $this->getConnection(true);
-        $qb = $this->getQueryBuilder($db);
-
-        $expected = 'ALTER TABLE `item` AUTO_INCREMENT=6';
-        $sql = $qb->resetSequence('item');
-        $this->assertEquals($expected, $sql);
-
-        $expected = 'ALTER TABLE `item` AUTO_INCREMENT=4';
-        $sql = $qb->resetSequence('item', 4);
-        $this->assertEquals($expected, $sql);
-    }
-
-    public function testResetSequenceNoAssociated(): void
-    {
-        $db = $this->getConnection();
-        $qb = $this->getQueryBuilder($db);
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage("There is no sequence associated with table 'constraints'");
-        $sql = $qb->resetSequence('constraints');
-    }
-
-    public function testResetSequenceTableNoExist(): void
-    {
-        $db = $this->getConnection();
-        $qb = $this->getQueryBuilder($db);
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Table not found: noExist');
-        $sql = $qb->resetSequence('noExist', 1);
-    }
-
     public function addDropForeignKeysProvider(): array
     {
         $result = $this->addDropforeignKeysProviderTrait();

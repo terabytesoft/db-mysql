@@ -12,6 +12,7 @@ use Yiisoft\Db\Exception\Exception;
 use Yiisoft\Db\Exception\InvalidConfigException;
 use Yiisoft\Db\Exception\NotSupportedException;
 use Yiisoft\Db\Mysql\DDLCommand;
+use Yiisoft\Db\Mysql\DMLCommand;
 use Yiisoft\Db\Query\QueryBuilderInterface;
 use Yiisoft\Db\Schema\QuoterInterface;
 use Yiisoft\Db\Schema\SchemaInterface;
@@ -44,7 +45,12 @@ final class CommandPDOMysql extends Command
 
     public function getDDLCommand(): DDLCommand
     {
-        return new DDLCommand($this->quoter);
+        return new DDLCommand($this, $this->quoter, $this->schema);
+    }
+
+    public function getDMLCommand(): DMLCommand
+    {
+        return new DMLCommand($this, $this->quoter, $this->schema);
     }
 
     /**
