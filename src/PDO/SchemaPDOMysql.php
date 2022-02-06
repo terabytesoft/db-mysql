@@ -242,43 +242,6 @@ final class SchemaPDOMysql extends Schema
         return $name;
     }
 
-    /**
-     * Executes the INSERT command, returning primary key values.
-     *
-     * @param string $table the table that new rows will be inserted into.
-     * @param array $columns the column data (name => value) to be inserted into the table.
-     *
-     * @throws Exception|InvalidCallException|InvalidConfigException|Throwable
-     *
-     * @return array|false primary key values or false if the command fails.
-     */
-    public function insert(string $table, array $columns): bool|array
-    {
-        $command = $this->db->createCommand()->insert($table, $columns);
-        $result = [];
-
-        if (!$command->execute()) {
-            return false;
-        }
-
-        $tableSchema = $this->getTableSchema($table);
-
-        if ($tableSchema !== null) {
-            /** @var string $name */
-            foreach ($tableSchema->getPrimaryKey() as $name) {
-                if ($tableSchema->getColumn($name)?->isAutoIncrement()) {
-                    $result[$name] = $this->getLastInsertID($tableSchema->getSequenceName() ?? '');
-                    break;
-                }
-
-                /** @var string|null */
-                $result[$name] = $columns[$name] ?? $tableSchema->getColumn($name)?->getDefaultValue();
-            }
-        }
-
-        return $result;
-    }
-
     public function rollBackSavepoint(string $name): void
     {
         $this->db->createCommand("ROLLBACK TO SAVEPOINT $name")->execute();

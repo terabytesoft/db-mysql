@@ -21,9 +21,9 @@ final class CommandPDOMysql extends Command
 {
     public function __construct(
         private ConnectionPDOInterface $db,
-        QueryBuilderInterface $queryBuilder,
+        private QueryBuilderInterface $queryBuilder,
         QueryCache $queryCache,
-        QuoterInterface $quoter,
+        private QuoterInterface $quoter,
         private SchemaInterface $schema
     ) {
         parent::__construct($queryBuilder, $queryCache, $quoter, $schema);
@@ -50,7 +50,7 @@ final class CommandPDOMysql extends Command
 
     public function getDMLCommand(): DMLCommand
     {
-        return new DMLCommand($this, $this->quoter, $this->schema);
+        return new DMLCommand($this, $this->queryBuilder, $this->quoter, $this->schema);
     }
 
     /**
