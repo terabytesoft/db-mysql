@@ -79,12 +79,7 @@ final class ConnectionPDOMysql extends Connection implements ConnectionPDOInterf
 
     public function createCommand(?string $sql = null, array $params = []): CommandInterface
     {
-        $command = new CommandPDOMysql(
-            $this,
-            $this->queryCache,
-            $this->getQuoter(),
-            $this->getSchema(),
-        );
+        $command = new CommandPDOMysql($this, $this->queryCache);
 
         if ($sql !== null) {
             $command->setSql($sql);
