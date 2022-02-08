@@ -4,29 +4,24 @@ declare(strict_types=1);
 
 namespace Yiisoft\Db\Mysql;
 
-use InvalidArgumentException;
 use JsonException;
 use Throwable;
-use Yiisoft\Db\Command\CommandInterface;
-use Yiisoft\Db\Command\DMLCommand as AbstractDMLCommand;
 use Yiisoft\Db\Exception\Exception;
+use Yiisoft\Db\Exception\InvalidArgumentException;
 use Yiisoft\Db\Exception\InvalidConfigException;
 use Yiisoft\Db\Exception\NotSupportedException;
 use Yiisoft\Db\Expression\Expression;
+use Yiisoft\Db\Expression\ExpressionInterface;
+use Yiisoft\Db\Query\DMLQueryBuilder as AbstractDMLQueryBuilder;
 use Yiisoft\Db\Query\Query;
 use Yiisoft\Db\Query\QueryBuilderInterface;
-use Yiisoft\Db\Schema\QuoterInterface;
-use Yiisoft\Db\Schema\SchemaInterface;
 
-final class DMLCommand extends AbstractDMLCommand
+final class DMLQueryBuilder extends AbstractDMLQueryBuilder
 {
     public function __construct(
-        private CommandInterface $command,
         private QueryBuilderInterface $queryBuilder,
-        private QuoterInterface $quoter,
-        private SchemaInterface $schema
     ) {
-        parent::__construct($queryBuilder, $quoter);
+        parent::__construct($queryBuilder);
     }
 
     /**
@@ -45,15 +40,18 @@ final class DMLCommand extends AbstractDMLCommand
      */
     public function resetSequence(string $tableName, array|int|string|null $value = null): string
     {
-        $table = $this->schema->getTableSchema($tableName);
+        $table = $this->queryBuilder->schema()->getTableSchema($tableName);
 
         if ($table !== null && $table->getSequenceName() !== null) {
-            $tableName = $this->quoter->quoteTableName($tableName);
+            $tableName = $this->queryBuilder->quoter()->quoteTableName($tableName);
 
             if ($value === null) {
                 $pk = $table->getPrimaryKey();
                 $key = (string) reset($pk);
-                $value = (int) $this->command->setSql("SELECT MAX(`$key`) FROM $tableName")->queryScalar() + 1;
+                $value = (int) $this->queryBuilder
+                    ->command()
+                    ->setSql("SELECT MAX(`$key`) FROM $tableName")
+                    ->queryScalar() + 1;
             } else {
                 $value = (int) $value;
             }
@@ -120,13 +118,13 @@ final class DMLCommand extends AbstractDMLCommand
             /** @var string $name */
             foreach ($updateNames as $name) {
                 $updateColumns[$name] = new Expression(
-                    'VALUES(' . $this->quoter->quoteColumnName($name) . ')'
+                    'VALUES(' . $this->queryBuilder->quoter()->quoteColumnName($name) . ')'
                 );
             }
         } elseif ($updateColumns === false) {
             $columnName = (string) reset($uniqueNames);
-            $name = $this->quoter->quoteColumnName($columnName);
-            $updateColumns = [$name => new Expression($this->quoter->quoteTableName($table) . '.' . $name)];
+            $name = $this->queryBuilder->quoter()->quoteColumnName($columnName);
+            $updateColumns = [$name => new Expression($this->queryBuilder->quoter()->quoteTableName($table) . '.' . $name)];
         }
 
         /**
