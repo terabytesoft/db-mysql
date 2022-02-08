@@ -16,22 +16,18 @@ use Yiisoft\Db\Schema\SchemaInterface;
 
 final class CommandPDOMysql extends Command
 {
-    public function __construct(
-        private ConnectionPDOInterface $db,
-        QueryCache $queryCache,
-        private QuoterInterface $quoter,
-        private SchemaInterface $schema
-    ) {
+    public function __construct(private ConnectionPDOInterface $db, QueryCache $queryCache)
+    {
         parent::__construct($queryCache);
     }
 
     public function queryBuilder(): QueryBuilderInterface
     {
-        return new QueryBuilderPDOMysql($this, $this->quoter, $this->schema);
+        return $this->db->getQueryBuilder();
     }
 
     /**
-     * @throws \Exception|Exception|PDOException|InvalidConfigException
+     * @throws Exception|PDOException|InvalidConfigException
      */
     public function prepare(?bool $forRead = null): void
     {
@@ -48,7 +44,7 @@ final class CommandPDOMysql extends Command
             $forRead = false;
         }
 
-        if ($forRead || ($forRead === null && $this->queryBuilder()->schema()->isReadQuery($sql))) {
+        if ($forRead || ($forRead === null && $this->db->getSchema()->isReadQuery($sql))) {
             $pdo = $this->db->getSlavePdo();
         } else {
             $pdo = $this->db->getMasterPdo();
@@ -94,9 +90,9 @@ final class CommandPDOMysql extends Command
                     $this->pdoStatement?->execute();
                 }
                 break;
-            } catch (\Exception $e) {
+            } catch (PDOException $e) {
                 $rawSql = $rawSql ?: $this->getRawSql();
-                $e = $this->queryBuilder()->schema()->convertException($e, $rawSql);
+                $e = $this->db->getSchema()->convertException($e, $rawSql);
 
                 if ($this->retryHandler === null || !($this->retryHandler)($e, $attempt)) {
                     throw $e;
