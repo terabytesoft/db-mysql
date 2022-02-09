@@ -488,6 +488,36 @@ final class SchemaPDOMysql extends Schema
         return $sql;
     }
 
+    public function insert(string $table, array $columns): bool|array
+    {
+        $command = $this->db->createCommand()->insert($table, $columns);
+        $tablePrimaryKey = [];
+
+        if (!$command->execute()) {
+            return false;
+        }
+
+        $tableSchema = $this->getTableSchema($table);
+        $result = [];
+
+        if ($tableSchema !== null) {
+            $tablePrimaryKey = $tableSchema->getPrimaryKey();
+        }
+
+        /** @var string $name */
+        foreach ($tablePrimaryKey as $name) {
+            if ($tableSchema?->getColumn($name)?->isAutoIncrement()) {
+                $result[$name] = $this->getLastInsertID((string) $tableSchema?->getSequenceName());
+                break;
+            }
+
+            /** @var mixed */
+            $result[$name] = $columns[$name] ?? $tableSchema?->getColumn($name)?->getDefaultValue();
+        }
+
+        return $result;
+    }
+
     /**
      * Loads the column information into a {@see ColumnSchema} object.
      *
