@@ -27,9 +27,8 @@ build:
 
           # Define any additional environment variables that are needed by the service.
           env:
-            MYSQL_USER: yii
-            MYSQL_PASSWORD: yii
-            MYSQL_ROOT_PASSWORD: 'root'
+            MYSQL_ALLOW_EMPTY_PASSWORD: 1
+            MYSQL_ROOT_PASSWORD: ''
             MYSQL_DATABASE: yiitest
 
           # We automatically forward these ports from your localhost to the service's port.
@@ -50,9 +49,6 @@ build:
           - composer update --prefer-dist --no-interaction --no-progress --optimize-autoloader --ansi
 
       tests:
-        before:
-          - mysql -u root -e "CREATE DATABASE yiitest"
-
         override:
           - command: ./vendor/bin/phpunit --coverage-clover ./coverage.xml
             on_node: 1
